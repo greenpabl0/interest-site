@@ -23,7 +23,7 @@ const HeroSection = () => {
       <div className="container mx-auto px-4 relative z-10">
         <div className="max-w-4xl mx-auto text-center">
           {/* Main Heading */}
-          <h1 className="text-4xl md:text-6xl font-bold text-brand-green mb-6 leading-tight">
+          <h1 className="text-4xl md:text-6xl font-bold text-brand-green mb-6 leading-tight tracking-wide">
             เครื่องคำนวณ
             <br />
             <span className="text-brand-gold">เบี้ยประกันภัย</span>
@@ -32,10 +32,6 @@ const HeroSection = () => {
           {/* Subtitle */}
           <p className="text-xl md:text-2xl text-gray-600 mb-8 leading-relaxed">
             คำนวณเบี้ยประกันที่เหมาะสมกับคุณ
-            <br />
-            <span className="text-brand-green font-semibold">
-              ง่าย • รวดเร็ว • แม่นยำ
-            </span>
           </p>
 
           {/* Feature Highlights */}
@@ -69,22 +65,6 @@ const HeroSection = () => {
             >
               ดูแผนประกัน
             </Button>
-          </div>
-
-          {/* Stats */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 max-w-2xl mx-auto">
-            <div className="text-center">
-              <div className="text-3xl font-bold text-brand-green mb-2">10,000+</div>
-              <div className="text-gray-600">ลูกค้าใช้บริการ</div>
-            </div>
-            <div className="text-center">
-              <div className="text-3xl font-bold text-brand-green mb-2">4.8/5</div>
-              <div className="text-gray-600">คะแนนความพึงพอใจ</div>
-            </div>
-            <div className="text-center">
-              <div className="text-3xl font-bold text-brand-green mb-2">24/7</div>
-              <div className="text-gray-600">สนับสนุนลูกค้า</div>
-            </div>
           </div>
         </div>
       </div>
