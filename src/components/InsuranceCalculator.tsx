@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Calculator, RotateCcw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import QuoteResult from './QuoteResult';
+import SelectiveForm from './SelectiveForm';
 
 interface CalculatorData {
   gender: string;
@@ -15,6 +15,14 @@ interface CalculatorData {
   paymentFrequency: string;
   plans: string[];
   packages: string[];
+}
+
+interface SelectedPackage {
+  id: string;
+  name: string;
+  category: string;
+  units: number;
+  subPackages?: string[];
 }
 
 const InsuranceCalculator = () => {
@@ -27,6 +35,7 @@ const InsuranceCalculator = () => {
     packages: []
   });
   
+  const [selectedPackagesFromForm, setSelectedPackagesFromForm] = useState<SelectedPackage[]>([]);
   const [showResult, setShowResult] = useState(false);
   const [calculatedPremium, setCalculatedPremium] = useState<{
     monthly: number;
@@ -75,30 +84,25 @@ const InsuranceCalculator = () => {
   };
 
   const calculatePremium = () => {
-    if (!formData.gender || !formData.currentAge || !formData.coverageAge || formData.plans.length === 0) {
+    if (!formData.gender || !formData.currentAge || !formData.coverageAge || selectedPackagesFromForm.length === 0) {
       toast({
         title: "ข้อมูลไม่ครบถ้วน",
-        description: "กรุณากรอกข้อมูลและเลือกแผนประกันอย่างน้อย 1 แผน",
+        description: "กรุณากรอกข้อมูลและเลือกแพ็กเกจประกันอย่างน้อย 1 รายการ",
         variant: "destructive",
       });
       return;
     }
 
-    // Calculate premium based on selected plans
+    // Calculate premium based on selected packages from SelectiveForm
     let totalBasePremium = 0;
-    formData.plans.forEach(planId => {
-      const plan = insurancePlans.find(p => p.id === planId);
-      if (plan) {
-        totalBasePremium += plan.basePremium;
-      }
-    });
-
-    // Add package premiums
-    const allPackages = Object.values(availablePackages).flat();
-    formData.packages.forEach(packageId => {
-      const pkg = allPackages.find(p => p.id === packageId);
-      if (pkg) {
-        totalBasePremium += pkg.premium;
+    selectedPackagesFromForm.forEach(pkg => {
+      // Base premium calculation per package (you can adjust this logic)
+      const basePremiumPerPackage = 8000; // Example base premium
+      totalBasePremium += basePremiumPerPackage * pkg.units;
+      
+      // Add sub-packages premium if any
+      if (pkg.subPackages && pkg.subPackages.length > 0) {
+        totalBasePremium += pkg.subPackages.length * 3000; // Example sub-package premium
       }
     });
     
@@ -131,6 +135,7 @@ const InsuranceCalculator = () => {
       plans: [],
       packages: []
     });
+    setSelectedPackagesFromForm([]);
     setShowResult(false);
     setCalculatedPremium(null);
     
@@ -140,47 +145,9 @@ const InsuranceCalculator = () => {
     });
   };
 
-  const togglePlan = (planId: string) => {
-    const currentPlans = [...formData.plans];
-    const index = currentPlans.indexOf(planId);
-    
-    if (index > -1) {
-      currentPlans.splice(index, 1);
-      // Remove packages related to this plan
-      const relatedPackages = availablePackages[planId as keyof typeof availablePackages] || [];
-      const relatedPackageIds = relatedPackages.map(pkg => pkg.id);
-      const filteredPackages = formData.packages.filter(pkgId => !relatedPackageIds.includes(pkgId));
-      setFormData({...formData, plans: currentPlans, packages: filteredPackages});
-    } else {
-      currentPlans.push(planId);
-      setFormData({...formData, plans: currentPlans});
-    }
+  const handlePackagesSelected = (packages: SelectedPackage[]) => {
+    setSelectedPackagesFromForm(packages);
   };
-
-  const togglePackage = (packageId: string) => {
-    const currentPackages = [...formData.packages];
-    const index = currentPackages.indexOf(packageId);
-    
-    if (index > -1) {
-      currentPackages.splice(index, 1);
-    } else {
-      currentPackages.push(packageId);
-    }
-    
-    setFormData({...formData, packages: currentPackages});
-  };
-
-  // Get all packages for selected plans
-  const getAvailablePackages = () => {
-    let packages: any[] = [];
-    formData.plans.forEach(planId => {
-      const planPackages = availablePackages[planId as keyof typeof availablePackages] || [];
-      packages = [...packages, ...planPackages];
-    });
-    return packages;
-  };
-
-  const selectedPlanPackages = getAvailablePackages();
 
   return (
     <section id="calculator" className="py-8 bg-gray-50">
@@ -194,7 +161,7 @@ const InsuranceCalculator = () => {
           </p>
         </div>
 
-        <div className="max-w-2xl mx-auto">
+        <div className="max-w-2xl mx-auto space-y-6">
           <Card className="shadow-lg border-0">
             <CardHeader className="brand-green text-white py-4">
               <CardTitle className="flex items-center gap-2 text-lg">
@@ -231,7 +198,7 @@ const InsuranceCalculator = () => {
                         <SelectValue placeholder="เลือกอายุ" />
                       </SelectTrigger>
                       <SelectContent>
-                        {Array.from({length: 45}, (_, i) => i + 20).map((age) => (
+                        {Array.from({length: 99}, (_, i) => i + 1).map((age) => (
                           <SelectItem key={age} value={age.toString()}>{age} ปี</SelectItem>
                         ))}
                       </SelectContent>
@@ -251,6 +218,10 @@ const InsuranceCalculator = () => {
                       <SelectItem value="70">70 ปี</SelectItem>
                       <SelectItem value="75">75 ปี</SelectItem>
                       <SelectItem value="80">80 ปี</SelectItem>
+                      <SelectItem value="85">85 ปี</SelectItem>
+                      <SelectItem value="90">90 ปี</SelectItem>
+                      <SelectItem value="95">95 ปี</SelectItem>
+                      <SelectItem value="99">99 ปี</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -271,88 +242,13 @@ const InsuranceCalculator = () => {
                 </div>
               </div>
 
-              {/* Insurance Plans - Multiple Selection */}
+              {/* Package Selection */}
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold text-brand-green border-b pb-2">
-                  แผนประกัน (เลือกได้หลายแผน) *
+                  เลือกแพ็กเกจประกันภัย *
                 </h3>
-                
-                <div className="grid grid-cols-1 gap-3">
-                  {insurancePlans.map((plan) => (
-                    <div 
-                      key={plan.id} 
-                      className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${
-                        formData.plans.includes(plan.id) 
-                          ? 'border-brand-green bg-brand-green/5' 
-                          : 'border-gray-200 hover:border-brand-green/50'
-                      }`}
-                      onClick={() => togglePlan(plan.id)}
-                    >
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="font-medium text-brand-green">{plan.name}</div>
-                          <div className="text-sm text-gray-600 mt-1">{plan.description}</div>
-                          <div className="text-sm text-brand-gold font-medium mt-2">
-                            เบี้ยเริ่มต้น: {plan.basePremium.toLocaleString()} บาท/ปี
-                          </div>
-                        </div>
-                        <div className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
-                          formData.plans.includes(plan.id) 
-                            ? 'bg-brand-green border-brand-green' 
-                            : 'border-gray-300'
-                        }`}>
-                          {formData.plans.includes(plan.id) && (
-                            <div className="w-2 h-2 bg-white rounded-full"></div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                <SelectiveForm onPackagesSelected={handlePackagesSelected} />
               </div>
-
-              {/* Packages */}
-              {selectedPlanPackages.length > 0 && (
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold text-brand-green border-b pb-2">
-                    แพ็กเกจเสริม (เลือกได้หลายรายการ)
-                  </h3>
-                  <div className="space-y-3 max-h-64 overflow-y-auto">
-                    {selectedPlanPackages.map((pkg) => (
-                      <div 
-                        key={pkg.id} 
-                        className={`p-3 border rounded-lg cursor-pointer transition-all ${
-                          formData.packages.includes(pkg.id) 
-                            ? 'border-brand-gold bg-brand-gold/5' 
-                            : 'border-gray-200 hover:border-brand-gold/50'
-                        }`}
-                        onClick={() => togglePackage(pkg.id)}
-                      >
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <div className="font-medium text-brand-green">{pkg.name}</div>
-                            <div className="text-sm text-gray-600">
-                              ความคุ้มครอง: {pkg.coverage.toLocaleString()} บาท
-                            </div>
-                            <div className="text-sm text-brand-gold font-medium">
-                              +{pkg.premium.toLocaleString()} บาท/ปี
-                            </div>
-                          </div>
-                          <div className={`w-4 h-4 rounded border flex items-center justify-center ${
-                            formData.packages.includes(pkg.id) 
-                              ? 'bg-brand-gold border-brand-gold' 
-                              : 'border-gray-300'
-                          }`}>
-                            {formData.packages.includes(pkg.id) && (
-                              <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
 
               {/* Action Buttons */}
               <div className="space-y-3 pt-4 border-t">
@@ -383,8 +279,13 @@ const InsuranceCalculator = () => {
             <QuoteResult 
               formData={formData}
               premium={calculatedPremium}
-              selectedPackages={selectedPlanPackages.filter(pkg => formData.packages.includes(pkg.id))}
-              selectedPlans={insurancePlans.filter(plan => formData.plans.includes(plan.id))}
+              selectedPackages={selectedPackagesFromForm.map(pkg => ({
+                id: pkg.id,
+                name: pkg.name,
+                coverage: 500000, // You can adjust this based on package
+                premium: 8000 * pkg.units // You can adjust this calculation
+              }))}
+              selectedPlans={[]} // No longer using the old plans system
             />
           )}
         </div>
