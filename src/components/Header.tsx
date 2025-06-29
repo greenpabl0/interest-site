@@ -25,7 +25,7 @@ const Header = () => {
               </div>
               <div>
                 <h1 className="text-xl font-bold text-brand-green">
-                  Premium Quote Builder
+                  ANAN IP CO., LTD.
                 </h1>
                 <p className="text-xs text-gray-600">
                   คำนวณเบี้ยประกันภัย
