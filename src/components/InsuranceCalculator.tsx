@@ -14,6 +14,8 @@ interface CalculatorData {
   currentAge: string;
   coverageAge: string;
   paymentFrequency: string;
+  plans: string[];
+  packages: string[];
 }
 
 interface SelectedPackage {
@@ -36,7 +38,9 @@ const InsuranceCalculator = () => {
     gender: '',
     currentAge: '',
     coverageAge: '',
-    paymentFrequency: ''
+    paymentFrequency: '',
+    plans: [],
+    packages: []
   });
   
   const [selectedPackagesFromForm, setSelectedPackagesFromForm] = useState<SelectedPackage[]>([]);
@@ -77,6 +81,18 @@ const InsuranceCalculator = () => {
       annual: annualPremium
     });
     
+    // Update formData with selected packages and plans
+    const packageNames = selectedPackagesFromForm.map(pkg => pkg.name);
+    const planNames = selectedPackagesFromForm.flatMap(pkg => 
+      pkg.selectedPlans.map(plan => plan.planName)
+    );
+    
+    setFormData({
+      ...formData,
+      packages: packageNames,
+      plans: planNames
+    });
+    
     setShowResult(true);
     
     toast({
@@ -90,7 +106,9 @@ const InsuranceCalculator = () => {
       gender: '',
       currentAge: '',
       coverageAge: '',
-      paymentFrequency: ''
+      paymentFrequency: '',
+      plans: [],
+      packages: []
     });
     setSelectedPackagesFromForm([]);
     setShowResult(false);
@@ -170,7 +188,7 @@ const InsuranceCalculator = () => {
                       <SelectValue placeholder="เลือกอายุสิ้นสุด" />
                     </SelectTrigger>
                     <SelectContent>
-                      {Array.from({length: 40}, (_, i) => i + 60).map((age) => (
+                      {Array.from({length: 99}, (_, i) => i + 1).map((age) => (
                         <SelectItem key={age} value={age.toString()}>{age} ปี</SelectItem>
                       ))}
                     </SelectContent>
