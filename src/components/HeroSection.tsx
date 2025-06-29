@@ -21,9 +21,8 @@ const HeroSection = () => {
       
       <div className="container mx-auto px-4 relative z-10">
         <div className="max-w-4xl mx-auto text-center">
-          <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold mb-6 leading-tight">
+          <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold mb-6 leading-tight text-brand-green">
             คำนวณเบี้ยประกันภัย
-            <span className="block text-brand-gold mt-2">ง่าย รวดเร็ว แม่นยำ</span>
           </h1>
           
           <p className="text-lg md:text-xl mb-8 text-white/90 max-w-2xl mx-auto leading-relaxed">
