@@ -1,27 +1,49 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { ChevronDown, Save, Package, RotateCcw } from 'lucide-react';
+import { ChevronDown, Save, Package, RotateCcw, Minus, Plus } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+
+interface SubPlan {
+  id: string;
+  name: string;
+  coverage: string;
+  monthlyPremium: number;
+  annualPremium: number;
+  minAge: number;
+  maxAge: number;
+  genderRestriction?: 'male' | 'female' | null;
+}
 
 interface SelectedPackage {
   id: string;
   name: string;
   category: string;
-  units: number;
   subPackages?: string[];
+  selectedPlans: {
+    planId: string;
+    planName: string;
+    coverage: string;
+    units: number;
+    monthlyPremium: number;
+    annualPremium: number;
+  }[];
 }
 
 interface SelectiveFormProps {
   onPackagesSelected?: (packages: SelectedPackage[]) => void;
+  userAge?: number;
+  userGender?: string;
 }
 
-const SelectiveForm: React.FC<SelectiveFormProps> = ({ onPackagesSelected }) => {
+const SelectiveForm: React.FC<SelectiveFormProps> = ({ onPackagesSelected, userAge = 25, userGender = 'male' }) => {
   const [selectedPackages, setSelectedPackages] = useState<SelectedPackage[]>([]);
   const [expandedCategories, setExpandedCategories] = useState<string[]>([]);
+  const [expandedPackages, setExpandedPackages] = useState<string[]>([]);
   const [expandedSubPackages, setExpandedSubPackages] = useState<string[]>([]);
   const { toast } = useToast();
 
@@ -70,6 +92,57 @@ const SelectiveForm: React.FC<SelectiveFormProps> = ({ onPackagesSelected }) => 
     ]
   };
 
+  // Sub-plans for each package with age/gender filtering and pricing
+  const getSubPlans = (packageName: string): SubPlan[] => {
+    const basePlans = [
+      { coverage: '1M', multiplier: 1 },
+      { coverage: '5M', multiplier: 5 },
+      { coverage: '10M', multiplier: 10 },
+      { coverage: '15M', multiplier: 15 }
+    ];
+
+    // Base pricing varies by package type
+    const basePricing = {
+      'AIA Health Happy Kids': { monthly: 500, annual: 5500 },
+      'AIA H&S (new standard)': { monthly: 800, annual: 9000 },
+      'AIA H&S Extra (new standard)': { monthly: 1200, annual: 13500 },
+      'AIA Health Saver': { monthly: 600, annual: 6800 },
+      'AIA Health Happy': { monthly: 900, annual: 10200 },
+      'AIA Infinite Care (new standard)': { monthly: 1500, annual: 17000 },
+      'HB': { monthly: 700, annual: 8000 },
+      'AIA HB Extra': { monthly: 1000, annual: 11500 },
+      'ผลประโยชน์ Day Case ของสัญญาเพิ่มเติม HB และ AIA HB Extra': { monthly: 300, annual: 3500 },
+      'AIA Health Cancer': { monthly: 1200, annual: 13800 },
+      'AIA Care for Cancer': { monthly: 1000, annual: 11500 },
+      'AIA CI Plus': { monthly: 1500, annual: 17500 },
+      'AIA CI Top Up': { monthly: 800, annual: 9200 },
+      'multi pay-ci plus': { monthly: 2000, annual: 23000 },
+      'Lady Care & Lady Care Plus': { monthly: 1100, annual: 12800 },
+      'AIA TPD': { monthly: 600, annual: 7000 },
+      'AIA Multi-Pay CI': { monthly: 1800, annual: 20500 },
+      'AIA Total Care': { monthly: 2200, annual: 25000 },
+      'Accident Coverage': { monthly: 400, annual: 4500 }
+    };
+
+    const packagePricing = basePricing[packageName] || { monthly: 500, annual: 6000 };
+
+    return basePlans.map(plan => ({
+      id: `${packageName}-${plan.coverage}`,
+      name: `${plan.coverage} Coverage`,
+      coverage: plan.coverage,
+      monthlyPremium: Math.round(packagePricing.monthly * plan.multiplier * (userAge > 40 ? 1.3 : 1.1) * (userGender === 'male' ? 1.1 : 1.0)),
+      annualPremium: Math.round(packagePricing.annual * plan.multiplier * (userAge > 40 ? 1.3 : 1.1) * (userGender === 'male' ? 1.1 : 1.0)),
+      minAge: packageName.includes('Kids') ? 0 : (packageName.includes('Lady') ? 18 : 18),
+      maxAge: packageName.includes('Kids') ? 17 : 75,
+      genderRestriction: packageName.includes('Lady') ? 'female' : null
+    })).filter(plan => {
+      // Filter by age and gender
+      const ageValid = userAge >= plan.minAge && userAge <= plan.maxAge;
+      const genderValid = !plan.genderRestriction || plan.genderRestriction === userGender;
+      return ageValid && genderValid;
+    });
+  };
+
   const toggleCategory = (categoryId: string) => {
     const newExpanded = [...expandedCategories];
     const index = newExpanded.indexOf(categoryId);
@@ -89,22 +162,17 @@ const SelectiveForm: React.FC<SelectiveFormProps> = ({ onPackagesSelected }) => 
     
     if (existing) {
       setSelectedPackages(selectedPackages.filter(p => p.id !== packageId));
-      // Remove from expanded sub packages if exists
-      setExpandedSubPackages(expandedSubPackages.filter(id => id !== packageId));
+      setExpandedPackages(expandedPackages.filter(id => id !== packageId));
     } else {
       const newPackage: SelectedPackage = {
         id: packageId,
         name: packageName,
         category: categoryId,
-        units: 1,
-        subPackages: subPackages[packageName] ? [] : undefined
+        subPackages: subPackages[packageName] ? [] : undefined,
+        selectedPlans: []
       };
       setSelectedPackages([...selectedPackages, newPackage]);
-      
-      // Auto expand if has sub packages
-      if (subPackages[packageName]) {
-        setExpandedSubPackages([...expandedSubPackages, packageId]);
-      }
+      setExpandedPackages([...expandedPackages, packageId]);
     }
   };
 
@@ -125,17 +193,56 @@ const SelectiveForm: React.FC<SelectiveFormProps> = ({ onPackagesSelected }) => 
     }));
   };
 
-  const updateUnits = (packageId: string, units: number) => {
-    if (units < 1) return;
+  const togglePlan = (packageId: string, plan: SubPlan) => {
+    setSelectedPackages(selectedPackages.map(pkg => {
+      if (pkg.id === packageId) {
+        const existingPlanIndex = pkg.selectedPlans.findIndex(p => p.planId === plan.id);
+        
+        if (existingPlanIndex > -1) {
+          // Remove plan
+          return {
+            ...pkg,
+            selectedPlans: pkg.selectedPlans.filter(p => p.planId !== plan.id)
+          };
+        } else {
+          // Add plan
+          return {
+            ...pkg,
+            selectedPlans: [...pkg.selectedPlans, {
+              planId: plan.id,
+              planName: plan.name,
+              coverage: plan.coverage,
+              units: 1,
+              monthlyPremium: plan.monthlyPremium,
+              annualPremium: plan.annualPremium
+            }]
+          };
+        }
+      }
+      return pkg;
+    }));
+  };
+
+  const updatePlanUnits = (packageId: string, planId: string, newUnits: number) => {
+    if (newUnits < 0) return;
     
-    setSelectedPackages(selectedPackages.map(pkg => 
-      pkg.id === packageId ? { ...pkg, units } : pkg
-    ));
+    setSelectedPackages(selectedPackages.map(pkg => {
+      if (pkg.id === packageId) {
+        return {
+          ...pkg,
+          selectedPlans: pkg.selectedPlans.map(plan => 
+            plan.planId === planId ? { ...plan, units: newUnits } : plan
+          ).filter(plan => plan.units > 0)
+        };
+      }
+      return pkg;
+    }));
   };
 
   const resetSelection = () => {
     setSelectedPackages([]);
     setExpandedCategories([]);
+    setExpandedPackages([]);
     setExpandedSubPackages([]);
     
     if (onPackagesSelected) {
@@ -149,24 +256,26 @@ const SelectiveForm: React.FC<SelectiveFormProps> = ({ onPackagesSelected }) => 
   };
 
   const handleSave = () => {
-    if (selectedPackages.filter(pkg => pkg.units > 0).length === 0) {
+    const packagesWithPlans = selectedPackages.filter(pkg => pkg.selectedPlans.length > 0);
+    
+    if (packagesWithPlans.length === 0) {
       toast({
         title: "ไม่พบข้อมูล",
-        description: "กรุณาเลือกแพ็กเกจอย่างน้อย 1 รายการ",
+        description: "กรุณาเลือกแผนอย่างน้อย 1 รายการ",
         variant: "destructive",
       });
       return;
     }
 
-    console.log('Selected Packages:', selectedPackages);
+    console.log('Selected Packages:', packagesWithPlans);
     
     if (onPackagesSelected) {
-      onPackagesSelected(selectedPackages.filter(pkg => pkg.units > 0));
+      onPackagesSelected(packagesWithPlans);
     }
     
     toast({
       title: "บันทึกสำเร็จ",
-      description: `บันทึกแพ็กเกจแล้ว ${selectedPackages.filter(pkg => pkg.units > 0).length} รายการ`,
+      description: `บันทึกแพ็กเกจแล้ว ${packagesWithPlans.length} รายการ`,
     });
   };
 
@@ -178,6 +287,22 @@ const SelectiveForm: React.FC<SelectiveFormProps> = ({ onPackagesSelected }) => 
     return selectedPackages.find(p => p.id === `${categoryId}-${packageName}`);
   };
 
+  const getTotalMonthly = () => {
+    return selectedPackages.reduce((total, pkg) => {
+      return total + pkg.selectedPlans.reduce((pkgTotal, plan) => {
+        return pkgTotal + (plan.monthlyPremium * plan.units);
+      }, 0);
+    }, 0);
+  };
+
+  const getTotalAnnual = () => {
+    return selectedPackages.reduce((total, pkg) => {
+      return total + pkg.selectedPlans.reduce((pkgTotal, plan) => {
+        return pkgTotal + (plan.annualPremium * plan.units);
+      }, 0);
+    }, 0);
+  };
+
   return (
     <div className="space-y-4">
       <div className="text-center mb-6">
@@ -185,7 +310,7 @@ const SelectiveForm: React.FC<SelectiveFormProps> = ({ onPackagesSelected }) => 
           เลือกแพ็กเกจประกันภัย
         </h3>
         <p className="text-gray-600 text-sm">
-          เลือกหมวดหมู่และแพ็กเกจที่ต้องการ พร้อมระบุจำนวนหน่วย
+          เลือกหมวดหมู่ แพ็กเกจ และแผนที่ต้องการ พร้อมระบุจำนวนหน่วย
         </p>
       </div>
 
@@ -211,11 +336,11 @@ const SelectiveForm: React.FC<SelectiveFormProps> = ({ onPackagesSelected }) => 
                 >
                   <div className="flex items-center gap-3">
                     <div className={`w-4 h-4 rounded border-2 ${
-                      selectedPackages.some(p => p.category === category.id)
+                      selectedPackages.some(p => p.category === category.id && p.selectedPlans.length > 0)
                         ? 'bg-brand-green border-brand-green'
                         : 'border-gray-300'
                     }`}>
-                      {selectedPackages.some(p => p.category === category.id) && (
+                      {selectedPackages.some(p => p.category === category.id && p.selectedPlans.length > 0) && (
                         <div className="w-2 h-2 bg-white rounded-full mx-auto mt-0.5"></div>
                       )}
                     </div>
@@ -243,42 +368,75 @@ const SelectiveForm: React.FC<SelectiveFormProps> = ({ onPackagesSelected }) => 
                             <Label className="font-medium text-gray-800 cursor-pointer">
                               {packageName}
                             </Label>
-                            
-                            {isPackageSelected(packageName, category.id) && (
-                              <div className="mt-3 flex items-center gap-3">
-                                <Label className="text-sm text-gray-600">จำนวนหน่วย:</Label>
-                                <div className="flex items-center gap-2">
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="w-8 h-8 p-0"
-                                    onClick={() => {
-                                      const pkg = getSelectedPackage(packageName, category.id);
-                                      if (pkg) updateUnits(pkg.id, pkg.units - 1);
-                                    }}
-                                  >
-                                    -
-                                  </Button>
-                                  <span className="w-12 text-center font-medium">
-                                    {getSelectedPackage(packageName, category.id)?.units || 1}
-                                  </span>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="w-8 h-8 p-0"
-                                    onClick={() => {
-                                      const pkg = getSelectedPackage(packageName, category.id);
-                                      if (pkg) updateUnits(pkg.id, pkg.units + 1);
-                                    }}
-                                  >
-                                    +
-                                  </Button>
-                                </div>
-                              </div>
-                            )}
                           </div>
                         </div>
                       </div>
+
+                      {/* Sub-plans */}
+                      {isPackageSelected(packageName, category.id) && (
+                        <div className="mt-4 space-y-3">
+                          <Label className="text-sm font-medium text-brand-green">
+                            เลือกแผนความคุ้มครอง:
+                          </Label>
+                          
+                          {getSubPlans(packageName).map((plan) => {
+                            const selectedPkg = getSelectedPackage(packageName, category.id);
+                            const selectedPlan = selectedPkg?.selectedPlans.find(p => p.planId === plan.id);
+                            const isSelected = !!selectedPlan;
+                            
+                            return (
+                              <div key={plan.id} className="bg-gray-50 p-3 rounded-lg">
+                                <div className="flex items-center justify-between mb-2">
+                                  <div className="flex items-center gap-3">
+                                    <Checkbox
+                                      checked={isSelected}
+                                      onCheckedChange={() => togglePlan(selectedPkg!.id, plan)}
+                                    />
+                                    <div>
+                                      <Label className="font-medium text-gray-800">
+                                        {plan.name} ({plan.coverage})
+                                      </Label>
+                                      <div className="text-xs text-gray-600">
+                                        เดือนละ ฿{plan.monthlyPremium.toLocaleString()} | ปีละ ฿{plan.annualPremium.toLocaleString()}
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                                
+                                {isSelected && (
+                                  <div className="flex items-center gap-3 mt-3">
+                                    <Label className="text-sm text-gray-600">จำนวนหน่วย:</Label>
+                                    <div className="flex items-center gap-2">
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="w-8 h-8 p-0"
+                                        onClick={() => updatePlanUnits(selectedPkg!.id, plan.id, selectedPlan.units - 1)}
+                                      >
+                                        <Minus className="w-4 h-4" />
+                                      </Button>
+                                      <span className="w-12 text-center font-medium bg-white px-2 py-1 rounded border">
+                                        {selectedPlan.units}
+                                      </span>
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="w-8 h-8 p-0"
+                                        onClick={() => updatePlanUnits(selectedPkg!.id, plan.id, selectedPlan.units + 1)}
+                                      >
+                                        <Plus className="w-4 h-4" />
+                                      </Button>
+                                    </div>
+                                    <div className="text-sm text-brand-gold ml-4">
+                                      รวม: ฿{(selectedPlan.monthlyPremium * selectedPlan.units).toLocaleString()}/เดือน
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
 
                     {/* Sub Packages */}
@@ -293,7 +451,7 @@ const SelectiveForm: React.FC<SelectiveFormProps> = ({ onPackagesSelected }) => 
                           
                           return (
                             <div key={subPackage} className="bg-brand-gold/10 p-3 rounded-lg">
-                              <div className="flex items-center gap-3">
+                              <div className="flex items-center gap-3 mb-2">
                                 <Checkbox
                                   checked={isSubSelected}
                                   onCheckedChange={() => {
@@ -306,6 +464,36 @@ const SelectiveForm: React.FC<SelectiveFormProps> = ({ onPackagesSelected }) => 
                                   {subPackage}
                                 </Label>
                               </div>
+                              
+                              {/* Sub-plans for sub-packages */}
+                              {isSubSelected && (
+                                <div className="mt-3 space-y-2 ml-6">
+                                  {getSubPlans(subPackage).map((plan) => {
+                                    const subPackageId = `${parentPkg!.id}-${subPackage}`;
+                                    const selectedSubPlan = selectedPackages.find(p => p.id === subPackageId)?.selectedPlans.find(p => p.planId === plan.id);
+                                    const isSubPlanSelected = !!selectedSubPlan;
+                                    
+                                    return (
+                                      <div key={plan.id} className="bg-white p-2 rounded border">
+                                        <div className="flex items-center justify-between">
+                                          <div className="flex items-center gap-2">
+                                            <Checkbox
+                                              checked={isSubPlanSelected}
+                                              onCheckedChange={() => togglePlan(subPackageId, plan)}
+                                            />
+                                            <div>
+                                              <Label className="text-xs font-medium">{plan.name}</Label>
+                                              <div className="text-xs text-gray-600">
+                                                ฿{plan.monthlyPremium.toLocaleString()}/เดือน
+                                              </div>
+                                            </div>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              )}
                             </div>
                           );
                         })}
@@ -318,23 +506,33 @@ const SelectiveForm: React.FC<SelectiveFormProps> = ({ onPackagesSelected }) => 
           ))}
 
           {/* Selected Summary */}
-          {selectedPackages.filter(pkg => pkg.units > 0).length > 0 && (
-            <div className="mt-4 p-3 bg-brand-green/5 rounded-lg border border-brand-green/20">
-              <h4 className="font-semibold text-brand-green mb-2 text-sm">แพ็กเกจที่เลือก:</h4>
-              <div className="space-y-1">
-                {selectedPackages.filter(pkg => pkg.units > 0).map((pkg) => (
-                  <div key={pkg.id} className="flex justify-between items-center text-xs">
-                    <span className="font-medium">{pkg.name}</span>
-                    <span className="text-brand-gold">
-                      {pkg.units} หน่วย
-                      {pkg.subPackages && pkg.subPackages.length > 0 && (
-                        <span className="ml-1 text-xs text-gray-500">
-                          (+{pkg.subPackages.length})
+          {selectedPackages.some(pkg => pkg.selectedPlans.length > 0) && (
+            <div className="mt-4 p-4 bg-brand-green/5 rounded-lg border border-brand-green/20">
+              <h4 className="font-semibold text-brand-green mb-3 text-sm">สรุปแพ็กเกจที่เลือก:</h4>
+              <div className="space-y-2">
+                {selectedPackages.filter(pkg => pkg.selectedPlans.length > 0).map((pkg) => (
+                  <div key={pkg.id} className="space-y-1">
+                    <div className="font-medium text-sm text-brand-green">{pkg.name}</div>
+                    {pkg.selectedPlans.map((plan) => (
+                      <div key={plan.planId} className="flex justify-between items-center text-xs pl-4">
+                        <span>{plan.planName} ({plan.coverage})</span>
+                        <span className="text-brand-gold">
+                          {plan.units} หน่วย - ฿{(plan.monthlyPremium * plan.units).toLocaleString()}/เดือน
                         </span>
-                      )}
-                    </span>
+                      </div>
+                    ))}
                   </div>
                 ))}
+              </div>
+              
+              <div className="mt-4 pt-3 border-t border-brand-green/20">
+                <div className="flex justify-between items-center font-bold text-brand-green">
+                  <span>รวมทั้งหมด:</span>
+                  <div className="text-right">
+                    <div>฿{getTotalMonthly().toLocaleString()}/เดือน</div>
+                    <div className="text-xs">฿{getTotalAnnual().toLocaleString()}/ปี</div>
+                  </div>
+                </div>
               </div>
             </div>
           )}

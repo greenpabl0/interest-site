@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -13,16 +14,21 @@ interface CalculatorData {
   currentAge: string;
   coverageAge: string;
   paymentFrequency: string;
-  plans: string[];
-  packages: string[];
 }
 
 interface SelectedPackage {
   id: string;
   name: string;
   category: string;
-  units: number;
   subPackages?: string[];
+  selectedPlans: {
+    planId: string;
+    planName: string;
+    coverage: string;
+    units: number;
+    monthlyPremium: number;
+    annualPremium: number;
+  }[];
 }
 
 const InsuranceCalculator = () => {
@@ -30,9 +36,7 @@ const InsuranceCalculator = () => {
     gender: '',
     currentAge: '',
     coverageAge: '',
-    paymentFrequency: '',
-    plans: [],
-    packages: []
+    paymentFrequency: ''
   });
   
   const [selectedPackagesFromForm, setSelectedPackagesFromForm] = useState<SelectedPackage[]>([]);
@@ -46,43 +50,6 @@ const InsuranceCalculator = () => {
 
   const { toast } = useToast();
 
-  const insurancePlans = [
-    { id: 'comprehensive', name: 'แผนครอบคลุม', description: 'ความคุ้มครองรอบด้าน', basePremium: 18000 },
-    { id: 'critical-illness', name: 'แผนโรคร้ายแรง', description: 'เฉพาะโรคร้ายแรง 35 โรค', basePremium: 15000 },
-    { id: 'accident', name: 'แผนอุบัติเหตุ', description: 'ความคุ้มครองจากอุบัติเหตุ', basePremium: 8000 },
-    { id: 'health', name: 'แผนสุขภาพ', description: 'ค่ารักษาพยาบาล', basePremium: 10000 },
-    { id: 'health-basic', name: 'แผนสุขภาพ Basic', description: 'ค่ารักษาพยาบาลพื้นฐาน', basePremium: 7000 },
-    { id: 'health-plus', name: 'แผนสุขภาพ Plus', description: 'ค่ารักษาพยาบาลขั้นสูง', basePremium: 13000 }
-  ];
-
-  const availablePackages = {
-    'comprehensive': [
-      { id: 'comp-basic', name: 'แพ็กเกจพื้นฐาน', coverage: 500000, premium: 12000 },
-      { id: 'comp-premium', name: 'แพ็กเกจพรีเมียม', coverage: 1000000, premium: 18000 },
-      { id: 'comp-platinum', name: 'แพ็กเกจแพลทินัม', coverage: 2000000, premium: 25000 }
-    ],
-    'critical-illness': [
-      { id: 'ci-standard', name: 'แพ็กเกจมาตรฐาน', coverage: 800000, premium: 15000 },
-      { id: 'ci-enhanced', name: 'แพ็กเกจเสริม', coverage: 1500000, premium: 22000 }
-    ],
-    'accident': [
-      { id: 'acc-basic', name: 'แพ็กเกจพื้นฐาน', coverage: 300000, premium: 8000 },
-      { id: 'acc-plus', name: 'แพ็กเกจพลัส', coverage: 600000, premium: 12000 }
-    ],
-    'health': [
-      { id: 'health-basic', name: 'แพ็กเกจพื้นฐาน', coverage: 400000, premium: 10000 },
-      { id: 'health-premium', name: 'แพ็กเกจพรีเมียม', coverage: 800000, premium: 16000 }
-    ],
-    'health-basic': [
-      { id: 'hb-starter', name: 'แพ็กเกจเริ่มต้น', coverage: 200000, premium: 5000 },
-      { id: 'hb-standard', name: 'แพ็กเกจมาตรฐาน', coverage: 350000, premium: 8000 }
-    ],
-    'health-plus': [
-      { id: 'hp-advanced', name: 'แพ็กเกจขั้นสูง', coverage: 600000, premium: 14000 },
-      { id: 'hp-premium', name: 'แพ็กเกจพรีเมียม', coverage: 1000000, premium: 20000 }
-    ]
-  };
-
   const calculatePremium = () => {
     if (!formData.gender || !formData.currentAge || !formData.coverageAge || selectedPackagesFromForm.length === 0) {
       toast({
@@ -94,28 +61,20 @@ const InsuranceCalculator = () => {
     }
 
     // Calculate premium based on selected packages from SelectiveForm
-    let totalBasePremium = 0;
+    let totalMonthlyPremium = 0;
     selectedPackagesFromForm.forEach(pkg => {
-      // Base premium calculation per package (you can adjust this logic)
-      const basePremiumPerPackage = 8000; // Example base premium
-      totalBasePremium += basePremiumPerPackage * pkg.units;
-      
-      // Add sub-packages premium if any
-      if (pkg.subPackages && pkg.subPackages.length > 0) {
-        totalBasePremium += pkg.subPackages.length * 3000; // Example sub-package premium
-      }
+      pkg.selectedPlans.forEach(plan => {
+        totalMonthlyPremium += plan.monthlyPremium * plan.units;
+      });
     });
     
-    const ageMultiplier = parseInt(formData.currentAge) > 40 ? 1.3 : 1.0;
-    const genderMultiplier = formData.gender === 'male' ? 1.1 : 1.0;
-    
-    const annualPremium = Math.round(totalBasePremium * ageMultiplier * genderMultiplier);
+    const annualPremium = totalMonthlyPremium * 12;
     
     setCalculatedPremium({
-      annual: annualPremium,
-      semiAnnual: Math.round(annualPremium / 2 * 1.02),
-      quarterly: Math.round(annualPremium / 4 * 1.05),
-      monthly: Math.round(annualPremium / 12 * 1.08)
+      monthly: totalMonthlyPremium,
+      quarterly: Math.round(annualPremium / 4 * 1.02),
+      semiAnnual: Math.round(annualPremium / 2 * 1.01),
+      annual: annualPremium
     });
     
     setShowResult(true);
@@ -131,9 +90,7 @@ const InsuranceCalculator = () => {
       gender: '',
       currentAge: '',
       coverageAge: '',
-      paymentFrequency: '',
-      plans: [],
-      packages: []
+      paymentFrequency: ''
     });
     setSelectedPackagesFromForm([]);
     setShowResult(false);
@@ -213,15 +170,9 @@ const InsuranceCalculator = () => {
                       <SelectValue placeholder="เลือกอายุสิ้นสุด" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="60">60 ปี</SelectItem>
-                      <SelectItem value="65">65 ปี</SelectItem>
-                      <SelectItem value="70">70 ปี</SelectItem>
-                      <SelectItem value="75">75 ปี</SelectItem>
-                      <SelectItem value="80">80 ปี</SelectItem>
-                      <SelectItem value="85">85 ปี</SelectItem>
-                      <SelectItem value="90">90 ปี</SelectItem>
-                      <SelectItem value="95">95 ปี</SelectItem>
-                      <SelectItem value="99">99 ปี</SelectItem>
+                      {Array.from({length: 40}, (_, i) => i + 60).map((age) => (
+                        <SelectItem key={age} value={age.toString()}>{age} ปี</SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -247,7 +198,11 @@ const InsuranceCalculator = () => {
                 <h3 className="text-lg font-semibold text-brand-green border-b pb-2">
                   เลือกแพ็กเกจประกันภัย *
                 </h3>
-                <SelectiveForm onPackagesSelected={handlePackagesSelected} />
+                <SelectiveForm 
+                  onPackagesSelected={handlePackagesSelected}
+                  userAge={parseInt(formData.currentAge) || 25}
+                  userGender={formData.gender}
+                />
               </div>
 
               {/* Action Buttons */}
@@ -282,10 +237,10 @@ const InsuranceCalculator = () => {
               selectedPackages={selectedPackagesFromForm.map(pkg => ({
                 id: pkg.id,
                 name: pkg.name,
-                coverage: 500000, // You can adjust this based on package
-                premium: 8000 * pkg.units // You can adjust this calculation
+                coverage: pkg.selectedPlans.reduce((total, plan) => total + parseInt(plan.coverage.replace('M', '000000')), 0),
+                premium: pkg.selectedPlans.reduce((total, plan) => total + (plan.monthlyPremium * plan.units), 0)
               }))}
-              selectedPlans={[]} // No longer using the old plans system
+              selectedPlans={[]}
             />
           )}
         </div>
