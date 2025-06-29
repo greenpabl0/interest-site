@@ -8,6 +8,12 @@ import LoginModal from './LoginModal';
 const Header = () => {
   const [showLoginModal, setShowLoginModal] = useState(false);
 
+  const handleLogin = (userData: { name?: string; email: string }) => {
+    console.log('User logged in:', userData);
+    setShowLoginModal(false);
+    // Here you can add logic to handle user authentication state
+  };
+
   return (
     <>
       <header className="bg-white shadow-sm border-b border-gray-200">
@@ -51,7 +57,8 @@ const Header = () => {
 
       <LoginModal 
         isOpen={showLoginModal} 
-        onClose={() => setShowLoginModal(false)} 
+        onClose={() => setShowLoginModal(false)}
+        onLogin={handleLogin}
       />
     </>
   );
