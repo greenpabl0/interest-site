@@ -133,7 +133,7 @@ const SelectiveForm: React.FC<SelectiveFormProps> = ({ onPackagesSelected, userA
       annualPremium: Math.round(packagePricing.annual * plan.multiplier * (userAge > 40 ? 1.3 : 1.1) * (userGender === 'male' ? 1.1 : 1.0)),
       minAge: packageName.includes('Kids') ? 0 : (packageName.includes('Lady') ? 18 : 18),
       maxAge: packageName.includes('Kids') ? 17 : 75,
-      genderRestriction: packageName.includes('Lady') ? 'female' : null
+      genderRestriction: packageName.includes('Lady') ? 'female' as const : null
     })).filter(plan => {
       // Filter by age and gender
       const ageValid = userAge >= plan.minAge && userAge <= plan.maxAge;
