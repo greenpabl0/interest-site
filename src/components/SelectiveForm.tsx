@@ -508,7 +508,7 @@ const SelectiveForm: React.FC<SelectiveFormProps> = ({ onPackagesSelected, userA
               variant={showAllPlans ? "default" : "outline"}
               size="sm"
               onClick={() => setShowAllPlans(true)}
-              className="border-brand-green text-brand-green hover:bg-brand-green hover:text-white"
+              className="brand-green text-white hover:opacity-90"
             >
               <Eye className="w-4 h-4 mr-1" />
               ดูแผนทั้งหมด
