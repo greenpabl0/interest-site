@@ -485,6 +485,9 @@ const SelectiveForm: React.FC<SelectiveFormProps> = ({ onPackagesSelected, userA
         <h3 className="text-2xl font-bold text-brand-green mb-3">
           เลือกแพ็กเกจประกันภัย
         </h3>
+        <p className="text-brand-gold font-medium">
+          กรุณาเลือกแพ็กเกจด้านล่างอย่างน้อย 1 แพ็กเกจ
+        </p>
       </div>
 
       <Card className="shadow-lg border border-brand-green/20">
