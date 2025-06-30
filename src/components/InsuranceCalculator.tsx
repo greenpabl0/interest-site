@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
 import { Calculator, RotateCcw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import QuoteResult from './QuoteResult';
@@ -152,7 +153,7 @@ const InsuranceCalculator = () => {
                   ข้อมูลส่วนตัว
                 </h3>
                 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="gender" className="text-sm">เพศ *</Label>
                     <Select value={formData.gender} onValueChange={(value) => setFormData({...formData, gender: value})}>
@@ -166,48 +167,50 @@ const InsuranceCalculator = () => {
                     </Select>
                   </div>
 
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                      <Label htmlFor="currentAge" className="text-sm">อายุปัจจุบัน (ปี) *</Label>
+                      <Input
+                        id="currentAge"
+                        type="number"
+                        min="1"
+                        max="99"
+                        value={formData.currentAge}
+                        onChange={(e) => setFormData({...formData, currentAge: e.target.value})}
+                        placeholder="กรอกอายุปัจจุบัน"
+                        className="h-12"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="coverageAge" className="text-sm">ความคุ้มครองจนถึงอายุ (ปี) *</Label>
+                      <Input
+                        id="coverageAge"
+                        type="number"
+                        min={formData.currentAge || "1"}
+                        max="99"
+                        value={formData.coverageAge}
+                        onChange={(e) => setFormData({...formData, coverageAge: e.target.value})}
+                        placeholder="กรอกอายุสิ้นสุดความคุ้มครอง"
+                        className="h-12"
+                      />
+                    </div>
+                  </div>
+
                   <div className="space-y-2">
-                    <Label htmlFor="currentAge" className="text-sm">อายุปัจจุบัน *</Label>
-                    <Select value={formData.currentAge} onValueChange={(value) => setFormData({...formData, currentAge: value})}>
+                    <Label htmlFor="paymentFrequency" className="text-sm">ความถี่ในการจ่าย</Label>
+                    <Select value={formData.paymentFrequency} onValueChange={(value) => setFormData({...formData, paymentFrequency: value})}>
                       <SelectTrigger className="h-12">
-                        <SelectValue placeholder="เลือกอายุ" />
+                        <SelectValue placeholder="เลือกวิธีการจ่าย" />
                       </SelectTrigger>
                       <SelectContent>
-                        {Array.from({length: 99}, (_, i) => i + 1).map((age) => (
-                          <SelectItem key={age} value={age.toString()}>{age} ปี</SelectItem>
-                        ))}
+                        <SelectItem value="monthly">รายเดือน</SelectItem>
+                        <SelectItem value="quarterly">รายไตรมาส</SelectItem>
+                        <SelectItem value="semiannual">รายครึ่งปี</SelectItem>
+                        <SelectItem value="annual">รายปี</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="coverageAge" className="text-sm">ความคุ้มครองจนถึงอายุ *</Label>
-                  <Select value={formData.coverageAge} onValueChange={(value) => setFormData({...formData, coverageAge: value})}>
-                    <SelectTrigger className="h-12">
-                      <SelectValue placeholder="เลือกอายุสิ้นสุด" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Array.from({length: 99}, (_, i) => i + 1).map((age) => (
-                        <SelectItem key={age} value={age.toString()}>{age} ปี</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="paymentFrequency" className="text-sm">ความถี่ในการจ่าย</Label>
-                  <Select value={formData.paymentFrequency} onValueChange={(value) => setFormData({...formData, paymentFrequency: value})}>
-                    <SelectTrigger className="h-12">
-                      <SelectValue placeholder="เลือกวิธีการจ่าย" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="monthly">รายเดือน</SelectItem>
-                      <SelectItem value="quarterly">รายไตรมาส</SelectItem>
-                      <SelectItem value="semiannual">รายครึ่งปี</SelectItem>
-                      <SelectItem value="annual">รายปี</SelectItem>
-                    </SelectContent>
-                  </Select>
                 </div>
               </div>
 
