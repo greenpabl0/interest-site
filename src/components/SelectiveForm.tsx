@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,6 +6,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { ChevronDown, Save, Package, RotateCcw, Minus, Plus, Eye } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { Input } from '@/components/ui/input';
 
 interface SubPlan {
   id: string;
@@ -46,6 +46,11 @@ const SelectiveForm: React.FC<SelectiveFormProps> = ({ onPackagesSelected, userA
   const [expandedPackages, setExpandedPackages] = useState<string[]>([]);
   const [expandedSubPackages, setExpandedSubPackages] = useState<string[]>([]);
   const [showAllPlans, setShowAllPlans] = useState(false);
+  
+  // New state for age inputs
+  const [currentAge, setCurrentAge] = useState<number>(userAge);
+  const [coverageAge, setCoverageAge] = useState<number>(65);
+  
   const { toast } = useToast();
 
   const categories = {
@@ -105,7 +110,7 @@ const SelectiveForm: React.FC<SelectiveFormProps> = ({ onPackagesSelected, userA
     return allPackages;
   };
 
-  // Sub-plans for each package with age/gender filtering and pricing
+  // Update getSubPlans to use the current age state
   const getSubPlans = (packageName: string): SubPlan[] => {
     const basePlans = [
       { coverage: '1M', multiplier: 1 },
@@ -143,14 +148,14 @@ const SelectiveForm: React.FC<SelectiveFormProps> = ({ onPackagesSelected, userA
       id: `${packageName}-${plan.coverage}`,
       name: `${plan.coverage} Coverage`,
       coverage: plan.coverage,
-      monthlyPremium: Math.round(packagePricing.monthly * plan.multiplier * (userAge > 40 ? 1.3 : 1.1) * (userGender === 'male' ? 1.1 : 1.0)),
-      annualPremium: Math.round(packagePricing.annual * plan.multiplier * (userAge > 40 ? 1.3 : 1.1) * (userGender === 'male' ? 1.1 : 1.0)),
+      monthlyPremium: Math.round(packagePricing.monthly * plan.multiplier * (currentAge > 40 ? 1.3 : 1.1) * (userGender === 'male' ? 1.1 : 1.0)),
+      annualPremium: Math.round(packagePricing.annual * plan.multiplier * (currentAge > 40 ? 1.3 : 1.1) * (userGender === 'male' ? 1.1 : 1.0)),
       minAge: packageName.includes('Kids') ? 0 : (packageName.includes('Lady') ? 18 : 18),
       maxAge: packageName.includes('Kids') ? 17 : 75,
       genderRestriction: packageName.includes('Lady') ? 'female' as const : null
     })).filter(plan => {
-      // Filter by age and gender
-      const ageValid = userAge >= plan.minAge && userAge <= plan.maxAge;
+      // Filter by age and gender using current age state
+      const ageValid = currentAge >= plan.minAge && currentAge <= plan.maxAge;
       const genderValid = !plan.genderRestriction || plan.genderRestriction === userGender;
       return ageValid && genderValid;
     });
@@ -475,32 +480,73 @@ const SelectiveForm: React.FC<SelectiveFormProps> = ({ onPackagesSelected, userA
   };
 
   return (
-    <div className="space-y-4">
-      <div className="text-center mb-6">
-        <h3 className="text-xl font-bold text-brand-green mb-2">
+    <div className="space-y-6">
+      <div className="text-center mb-6 bg-gradient-to-r from-brand-green/5 to-brand-gold/5 p-6 rounded-lg">
+        <h3 className="text-2xl font-bold text-brand-green mb-3">
           เลือกแพ็กเกจประกันภัย
         </h3>
-        <p className="text-gray-600 text-sm">
-          เลือกหมวดหมู่ แพ็กเกจ และแผนที่ต้องการ พร้อมระบุจำนวนหน่วย
+        <p className="text-brand-gold font-medium">
+          กรอกข้อมูลส่วนตัวและเลือกแพ็กเกจที่เหมาะสมกับคุณ
         </p>
       </div>
 
-      <Card className="shadow-lg border-0">
-        <CardHeader className="brand-green text-white py-3">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Package className="w-4 h-4" />
+      {/* Age Input Section */}
+      <Card className="shadow-lg border border-brand-green/20">
+        <CardHeader className="bg-gradient-to-r from-brand-green to-brand-green/80 text-white py-4">
+          <CardTitle className="text-lg">ข้อมูลส่วนตัว</CardTitle>
+        </CardHeader>
+        <CardContent className="p-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <Label htmlFor="currentAge" className="text-brand-green font-medium">
+                อายุปัจจุบัน (ปี)
+              </Label>
+              <Input
+                id="currentAge"
+                type="number"
+                min="0"
+                max="100"
+                value={currentAge}
+                onChange={(e) => setCurrentAge(Number(e.target.value))}
+                className="border-brand-green/30 focus:border-brand-green h-12 text-lg"
+                placeholder="กรอกอายุปัจจุบัน"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="coverageAge" className="text-brand-green font-medium">
+                ความคุ้มครองจนถึงอายุ (ปี)
+              </Label>
+              <Input
+                id="coverageAge"
+                type="number"
+                min={currentAge}
+                max="100"
+                value={coverageAge}
+                onChange={(e) => setCoverageAge(Number(e.target.value))}
+                className="border-brand-green/30 focus:border-brand-green h-12 text-lg"
+                placeholder="กรอกอายุที่ต้องการความคุ้มครอง"
+              />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="shadow-lg border border-brand-green/20">
+        <CardHeader className="bg-gradient-to-r from-brand-green to-brand-green/80 text-white py-4">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Package className="w-5 h-5" />
             เลือกหมวดหมู่สัญญา
           </CardTitle>
         </CardHeader>
-        <CardContent className="p-3 space-y-3">
+        <CardContent className="p-6 space-y-4">
           
           {/* View Toggle Buttons */}
-          <div className="flex gap-2 mb-4">
+          <div className="flex gap-3 mb-6">
             <Button
               variant={!showAllPlans ? "default" : "outline"}
               size="sm"
               onClick={() => setShowAllPlans(false)}
-              className="brand-green text-white hover:opacity-90"
+              className={!showAllPlans ? "brand-green text-white" : "border-brand-green text-brand-green hover:bg-brand-green hover:text-white"}
             >
               ดูตามหมวดหมู่
             </Button>
@@ -508,7 +554,7 @@ const SelectiveForm: React.FC<SelectiveFormProps> = ({ onPackagesSelected, userA
               variant={showAllPlans ? "default" : "outline"}
               size="sm"
               onClick={() => setShowAllPlans(true)}
-              className="brand-green text-white hover:opacity-90"
+              className={showAllPlans ? "brand-green text-white" : "border-brand-green text-brand-green hover:bg-brand-green hover:text-white"}
             >
               <Eye className="w-4 h-4 mr-1" />
               ดูแผนทั้งหมด
@@ -572,16 +618,16 @@ const SelectiveForm: React.FC<SelectiveFormProps> = ({ onPackagesSelected, userA
 
           {/* Selected Summary */}
           {selectedPackages.some(pkg => pkg.selectedPlans.length > 0) && (
-            <div className="mt-4 p-4 bg-brand-green/5 rounded-lg border border-brand-green/20">
-              <h4 className="font-semibold text-brand-green mb-3 text-sm">สรุปแพ็กเกจที่เลือก:</h4>
-              <div className="space-y-2">
+            <div className="mt-6 p-6 bg-gradient-to-r from-brand-green/10 to-brand-gold/10 rounded-lg border border-brand-green/20">
+              <h4 className="font-bold text-brand-green mb-4 text-lg">สรุปแพ็กเกจที่เลือก:</h4>
+              <div className="space-y-3">
                 {selectedPackages.filter(pkg => pkg.selectedPlans.length > 0).map((pkg) => (
-                  <div key={pkg.id} className="space-y-1">
-                    <div className="font-medium text-sm text-brand-green">{pkg.name}</div>
+                  <div key={pkg.id} className="space-y-2 bg-white p-4 rounded-lg shadow-sm">
+                    <div className="font-bold text-brand-green">{pkg.name}</div>
                     {pkg.selectedPlans.map((plan) => (
-                      <div key={plan.planId} className="flex justify-between items-center text-xs pl-4">
-                        <span>{plan.planName} ({plan.coverage})</span>
-                        <span className="text-brand-gold">
+                      <div key={plan.planId} className="flex justify-between items-center text-sm pl-4 py-2 bg-brand-green/5 rounded">
+                        <span className="text-brand-green">{plan.planName} ({plan.coverage})</span>
+                        <span className="text-brand-gold font-bold">
                           {plan.units} หน่วย - ฿{(plan.monthlyPremium * plan.units).toLocaleString()}/เดือน
                         </span>
                       </div>
@@ -590,12 +636,12 @@ const SelectiveForm: React.FC<SelectiveFormProps> = ({ onPackagesSelected, userA
                 ))}
               </div>
               
-              <div className="mt-4 pt-3 border-t border-brand-green/20">
-                <div className="flex justify-between items-center font-bold text-brand-green">
-                  <span>รวมทั้งหมด:</span>
+              <div className="mt-6 pt-4 border-t border-brand-green/20">
+                <div className="flex justify-between items-center font-bold text-lg">
+                  <span className="text-brand-green">รวมทั้งหมด:</span>
                   <div className="text-right">
-                    <div>฿{getTotalMonthly().toLocaleString()}/เดือน</div>
-                    <div className="text-xs">฿{getTotalAnnual().toLocaleString()}/ปี</div>
+                    <div className="text-brand-green">฿{getTotalMonthly().toLocaleString()}/เดือน</div>
+                    <div className="text-brand-gold text-sm">฿{getTotalAnnual().toLocaleString()}/ปี</div>
                   </div>
                 </div>
               </div>
@@ -603,21 +649,21 @@ const SelectiveForm: React.FC<SelectiveFormProps> = ({ onPackagesSelected, userA
           )}
 
           {/* Action Buttons */}
-          <div className="pt-3 border-t space-y-2">
+          <div className="pt-6 border-t border-brand-green/20 space-y-3">
             <Button 
               onClick={handleSave}
-              className="brand-green text-white hover:opacity-90 w-full h-10 text-sm"
+              className="brand-green text-white hover:opacity-90 w-full h-12 text-lg font-medium shadow-lg"
             >
-              <Save className="w-4 h-4 mr-2" />
+              <Save className="w-5 h-5 mr-2" />
               บันทึกการเลือก
             </Button>
             
             <Button 
               onClick={resetSelection}
               variant="outline"
-              className="border-brand-green text-brand-green hover:bg-brand-green hover:text-white w-full h-10 text-sm"
+              className="border-brand-gold text-brand-gold hover:bg-brand-gold hover:text-white w-full h-12 text-lg font-medium shadow-lg"
             >
-              <RotateCcw className="w-4 h-4 mr-2" />
+              <RotateCcw className="w-5 h-5 mr-2" />
               รีเซ็ตการเลือก
             </Button>
           </div>
