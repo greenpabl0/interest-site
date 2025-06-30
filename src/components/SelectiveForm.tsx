@@ -485,51 +485,7 @@ const SelectiveForm: React.FC<SelectiveFormProps> = ({ onPackagesSelected, userA
         <h3 className="text-2xl font-bold text-brand-green mb-3">
           เลือกแพ็กเกจประกันภัย
         </h3>
-        <p className="text-brand-gold font-medium">
-          กรอกข้อมูลส่วนตัวและเลือกแพ็กเกจที่เหมาะสมกับคุณ
-        </p>
       </div>
-
-      {/* Age Input Section */}
-      <Card className="shadow-lg border border-brand-green/20">
-        <CardHeader className="bg-gradient-to-r from-brand-green to-brand-green/80 text-white py-4">
-          <CardTitle className="text-lg">ข้อมูลส่วนตัว</CardTitle>
-        </CardHeader>
-        <CardContent className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <Label htmlFor="currentAge" className="text-brand-green font-medium">
-                อายุปัจจุบัน (ปี)
-              </Label>
-              <Input
-                id="currentAge"
-                type="number"
-                min="0"
-                max="100"
-                value={currentAge}
-                onChange={(e) => setCurrentAge(Number(e.target.value))}
-                className="border-brand-green/30 focus:border-brand-green h-12 text-lg"
-                placeholder="กรอกอายุปัจจุบัน"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="coverageAge" className="text-brand-green font-medium">
-                ความคุ้มครองจนถึงอายุ (ปี)
-              </Label>
-              <Input
-                id="coverageAge"
-                type="number"
-                min={currentAge}
-                max="100"
-                value={coverageAge}
-                onChange={(e) => setCoverageAge(Number(e.target.value))}
-                className="border-brand-green/30 focus:border-brand-green h-12 text-lg"
-                placeholder="กรอกอายุที่ต้องการความคุ้มครอง"
-              />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
 
       <Card className="shadow-lg border border-brand-green/20">
         <CardHeader className="bg-gradient-to-r from-brand-green to-brand-green/80 text-white py-4">
