@@ -99,7 +99,7 @@ const SelectiveForm: React.FC<SelectiveFormProps> = ({ onPackagesSelected, userA
   };
 
   // Special packages that don't show coverage plans directly
-  const specialPackages = ['multi pay-ci plus'];
+  const specialPackages = ['multi pay-ci plus', 'Accident Coverage'];
 
   // Get all packages for "Show All Plans" view
   const getAllPackages = () => {
@@ -330,6 +330,97 @@ const SelectiveForm: React.FC<SelectiveFormProps> = ({ onPackagesSelected, userA
     const selectedPkg = getSelectedPackage(packageName, categoryId);
     const isSelected = isPackageSelected(packageName, categoryId);
 
+    // Special handling for Accident Coverage - show plans directly
+    if (packageName === 'Accident Coverage') {
+      return (
+        <div className="space-y-3">
+          <div className="bg-white p-4 rounded-lg border shadow-sm">
+            <div className="space-y-3">
+              <Label className="text-sm font-medium text-brand-green">
+                เลือกแผนความคุ้มครอง:
+              </Label>
+              
+              {getSubPlans(packageName).map((plan) => {
+                const packageId = `${categoryId}-${packageName}`;
+                let selectedPackage = selectedPackages.find(p => p.id === packageId);
+                
+                // Auto-create package if plan is selected but package doesn't exist
+                if (!selectedPackage) {
+                  selectedPackage = {
+                    id: packageId,
+                    name: packageName,
+                    category: categoryId,
+                    selectedPlans: []
+                  };
+                }
+                
+                const selectedPlan = selectedPackage.selectedPlans.find(p => p.planId === plan.id);
+                const isPlanSelected = !!selectedPlan;
+                
+                return (
+                  <div key={plan.id} className="bg-gray-50 p-3 rounded-lg">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-3">
+                        <Checkbox
+                          checked={isPlanSelected}
+                          onCheckedChange={() => {
+                            // Ensure package exists before toggling plan
+                            if (!selectedPackages.find(p => p.id === packageId)) {
+                              setSelectedPackages([...selectedPackages, selectedPackage]);
+                            }
+                            togglePlan(packageId, plan);
+                          }}
+                        />
+                        <div>
+                          <Label className="font-medium text-gray-800">
+                            {plan.name} ({plan.coverage})
+                          </Label>
+                          <div className="text-xs text-gray-600">
+                            เดือนละ ฿{plan.monthlyPremium.toLocaleString()} | ปีละ ฿{plan.annualPremium.toLocaleString()}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {isPlanSelected && selectedPlan && (
+                      <div className="flex items-center gap-3 mt-3">
+                        <Label className="text-sm text-gray-600">จำนวนหน่วย:</Label>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="w-8 h-8 p-0"
+                            onClick={() => updatePlanUnits(packageId, plan.id, selectedPlan.units - 1)}
+                          >
+                            <Minus className="w-4 h-4" />
+                          </Button>
+                          <span className="w-12 text-center font-medium bg-white px-2 py-1 rounded border">
+                            {selectedPlan.units}
+                          </span>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="w-8 h-8 p-0"
+                            onClick={() => updatePlanUnits(packageId, plan.id, selectedPlan.units + 1)}
+                          >
+                            <Plus className="w-4 h-4" />
+                          </Button>
+                        </div>
+                        <div className="text-sm text-brand-gold ml-4">
+                          รวม: ฿{(selectedPlan.monthlyPremium * selectedPlan.units).toLocaleString()}/เดือน
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // Regular package handling for non-Accident Coverage packages
     return (
       <div className="space-y-3">
         {/* Main Package */}
