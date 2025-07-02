@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -39,7 +38,7 @@ const InsuranceCalculator = () => {
     gender: '',
     currentAge: '',
     coverageAge: '',
-    paymentFrequency: '',
+    paymentFrequency: 'annual', // Set default to annual
     plans: [],
     packages: []
   });
@@ -107,7 +106,7 @@ const InsuranceCalculator = () => {
       gender: '',
       currentAge: '',
       coverageAge: '',
-      paymentFrequency: '',
+      paymentFrequency: 'annual', // Reset to annual
       plans: [],
       packages: []
     });
@@ -204,9 +203,6 @@ const InsuranceCalculator = () => {
                         <SelectValue placeholder="เลือกวิธีการจ่าย" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="monthly">รายเดือน</SelectItem>
-                        <SelectItem value="quarterly">รายไตรมาส</SelectItem>
-                        <SelectItem value="semiannual">รายครึ่งปี</SelectItem>
                         <SelectItem value="annual">รายปี</SelectItem>
                       </SelectContent>
                     </Select>
