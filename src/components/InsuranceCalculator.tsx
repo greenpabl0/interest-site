@@ -1,264 +1,284 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Input } from '@/components/ui/input';
-import { Calculator, RotateCcw } from 'lucide-react';
+import { Calculator, User, Calendar, DollarSign, Package } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import QuoteResult from './QuoteResult';
-import SelectiveForm from './SelectiveForm';
-
-interface CalculatorData {
-  gender: string;
-  currentAge: string;
-  coverageAge: string;
-  paymentFrequency: string;
-  plans: string[];
-  packages: string[];
-}
-
-interface SelectedPackage {
-  id: string;
-  name: string;
-  category: string;
-  subPackages?: string[];
-  selectedPlans: {
-    planId: string;
-    planName: string;
-    coverage: string;
-    units: number;
-    monthlyPremium: number;
-    annualPremium: number;
-  }[];
-}
+import TwoStepSelectiveForm from './TwoStepSelectiveForm';
 
 const InsuranceCalculator = () => {
-  const [formData, setFormData] = useState<CalculatorData>({
+  const [formData, setFormData] = useState({
+    age: '',
     gender: '',
-    currentAge: '',
-    coverageAge: '',
-    paymentFrequency: 'annual', // Set default to annual
-    plans: [],
-    packages: []
+    occupation: '',
+    income: '',
+    paymentFrequency: 'annual'
   });
   
-  const [selectedPackagesFromForm, setSelectedPackagesFromForm] = useState<SelectedPackage[]>([]);
-  const [showResult, setShowResult] = useState(false);
-  const [calculatedPremium, setCalculatedPremium] = useState<{
-    monthly: number;
-    quarterly: number;
-    semiAnnual: number;
-    annual: number;
-  } | null>(null);
-
+  const [showResults, setShowResults] = useState(false);
+  const [showSelectiveForm, setShowSelectiveForm] = useState(false);
+  const [quote, setQuote] = useState(null);
   const { toast } = useToast();
 
-  const calculatePremium = () => {
-    if (!formData.gender || !formData.currentAge || !formData.coverageAge || selectedPackagesFromForm.length === 0) {
+  const handleInputChange = (field: string, value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const calculateQuote = () => {
+    if (!formData.age || !formData.gender || !formData.occupation || !formData.income) {
       toast({
         title: "ข้อมูลไม่ครบถ้วน",
-        description: "กรุณากรอกข้อมูลและเลือกแพ็กเกจประกันอย่างน้อย 1 รายการ",
+        description: "กรุณากรอกข้อมูลให้ครบทุกช่อง",
         variant: "destructive",
       });
       return;
     }
 
-    // Calculate premium based on selected packages from SelectiveForm
-    let totalMonthlyPremium = 0;
-    selectedPackagesFromForm.forEach(pkg => {
-      pkg.selectedPlans.forEach(plan => {
-        totalMonthlyPremium += plan.monthlyPremium * plan.units;
+    const age = parseInt(formData.age);
+    const income = parseInt(formData.income);
+    
+    if (age < 1 || age > 80) {
+      toast({
+        title: "อายุไม่ถูกต้อง",
+        description: "กรุณากรอกอายุระหว่าง 1-80 ปี",
+        variant: "destructive",
       });
-    });
+      return;
+    }
+
+    if (income < 10000) {
+      toast({
+        title: "รายได้ไม่ถูกต้อง",
+        description: "กรุณากรอกรายได้ขั้นต่ำ 10,000 บาท",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Calculate base premium based on age and income
+    const basePremium = Math.round(income * 0.05 * (age > 40 ? 1.5 : 1.2));
+    const ageFactor = age < 30 ? 0.8 : age < 50 ? 1.0 : 1.3;
+    const genderFactor = formData.gender === 'male' ? 1.1 : 1.0;
     
-    const annualPremium = totalMonthlyPremium * 12;
-    
-    setCalculatedPremium({
-      monthly: totalMonthlyPremium,
-      quarterly: Math.round(annualPremium / 4 * 1.02),
-      semiAnnual: Math.round(annualPremium / 2 * 1.01),
-      annual: annualPremium
-    });
-    
-    // Update formData with selected packages and plans
-    const packageNames = selectedPackagesFromForm.map(pkg => pkg.name);
-    const planNames = selectedPackagesFromForm.flatMap(pkg => 
-      pkg.selectedPlans.map(plan => plan.planName)
-    );
-    
-    setFormData({
+    const calculatedQuote = {
       ...formData,
-      packages: packageNames,
-      plans: planNames
-    });
-    
-    setShowResult(true);
+      basePremium,
+      recommendedCoverage: income * 12 * 5, // 5 years of income
+      monthlyPremium: Math.round(basePremium * ageFactor * genderFactor),
+      annualPremium: Math.round(basePremium * ageFactor * genderFactor * 11), // 11 months discount
+    };
+
+    setQuote(calculatedQuote);
+    setShowResults(true);
     
     toast({
-      title: "คำนวณเบี้ยประกันสำเร็จ",
-      description: "ผลลัพธ์แสดงด้านล่าง",
+      title: "คำนวณสำเร็จ",
+      description: "ได้ผลการคำนวณเบี้ยประกันแล้ว",
     });
   };
 
   const resetForm = () => {
     setFormData({
+      age: '',
       gender: '',
-      currentAge: '',
-      coverageAge: '',
-      paymentFrequency: 'annual', // Reset to annual
-      plans: [],
-      packages: []
+      occupation: '',
+      income: '',
+      paymentFrequency: 'annual'
     });
-    setSelectedPackagesFromForm([]);
-    setShowResult(false);
-    setCalculatedPremium(null);
-    
+    setShowResults(false);
+    setShowSelectiveForm(false);
+    setQuote(null);
+  };
+
+  const handleSelectiveForm = () => {
+    if (!formData.age || !formData.gender) {
+      toast({
+        title: "ข้อมูลไม่ครบถ้วน",
+        description: "กรุณากรอกอายุและเพศก่อนเลือกแพ็กเกจ",
+        variant: "destructive",
+      });
+      return;
+    }
+    setShowSelectiveForm(true);
+  };
+
+  const handleFinalSelection = (packages: any[]) => {
+    console.log('Final selected packages:', packages);
     toast({
-      title: "รีเซ็ตฟอร์มเรียบร้อย",
-      description: "สามารถกรอกข้อมูลใหม่ได้",
+      title: "บันทึกสำเร็จ",
+      description: `เลือกแพ็กเกจและแผนเรียบร้อยแล้ว ${packages.length} แพ็กเกจ`,
     });
   };
 
-  const handlePackagesSelected = (packages: SelectedPackage[]) => {
-    setSelectedPackagesFromForm(packages);
-  };
+  if (showSelectiveForm) {
+    return (
+      <div className="container mx-auto px-4 py-12">
+        <TwoStepSelectiveForm
+          userAge={parseInt(formData.age) || 25}
+          userGender={formData.gender}
+          onFinalSelection={handleFinalSelection}
+        />
+        <div className="mt-6 text-center">
+          <Button
+            onClick={() => setShowSelectiveForm(false)}
+            variant="outline"
+            className="border-brand-gold text-brand-gold hover:bg-brand-gold hover:text-white"
+          >
+            กลับไปหน้าคำนวณ
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <section id="calculator" className="py-8 bg-gray-50">
-      <div className="container mx-auto px-3">
-        <div className="text-center mb-8">
-          <h2 className="text-2xl md:text-3xl font-bold text-brand-green mb-3">
-            เครื่องคำนวณเบี้ยประกัน
+    <section className="py-20 bg-gradient-to-br from-white to-brand-green/5">
+      <div className="container mx-auto px-4">
+        <div className="text-center mb-12">
+          <h2 className="text-4xl font-bold text-brand-green mb-4">
+            คำนวณเบี้ยประกันภัย
           </h2>
-          <p className="text-gray-600 text-sm md:text-base">
-            คำนวณเบี้ยประกันที่เหมาะสมกับคุณ ง่ายๆ ในไม่กี่ขั้นตอน
+          <p className="text-xl text-brand-gold max-w-2xl mx-auto">
+            คำนวณเบี้ยประกันที่เหมาะสมกับตรอนตัวคุณ ง่าย ๆ ใน 3 ขั้นตอน
           </p>
         </div>
 
-        <div className="max-w-2xl mx-auto space-y-6">
-          <Card className="shadow-lg border-0">
-            <CardHeader className="brand-green text-white py-4">
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <Calculator className="w-5 h-5" />
-                กรอกข้อมูลเพื่อคำนวณเบี้ยประกัน
+        <div className="max-w-2xl mx-auto">
+          <Card className="shadow-xl border border-brand-green/20">
+            <CardHeader className="bg-gradient-to-r from-brand-green to-brand-green/80 text-white">
+              <CardTitle className="flex items-center gap-2 text-2xl">
+                <Calculator className="w-6 h-6" />
+                กรอกข้อมูลส่วนตัว
               </CardTitle>
             </CardHeader>
-            <CardContent className="p-4 space-y-6">
-              
-              {/* Personal Information */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-brand-green border-b pb-2">
-                  ข้อมูลส่วนตัว
-                </h3>
-                
-                <div className="grid grid-cols-1 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="gender" className="text-sm">เพศ *</Label>
-                    <Select value={formData.gender} onValueChange={(value) => setFormData({...formData, gender: value})}>
-                      <SelectTrigger className="h-12">
-                        <SelectValue placeholder="เลือกเพศ" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="male">ชาย</SelectItem>
-                        <SelectItem value="female">หญิง</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+            
+            <CardContent className="p-8 space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label htmlFor="age" className="flex items-center gap-2 text-brand-green font-medium">
+                    <Calendar className="w-4 h-4" />
+                    อายุ (ปี)
+                  </Label>
+                  <Input
+                    id="age"
+                    type="number"
+                    placeholder="ระบุอายุ"
+                    value={formData.age}
+                    onChange={(e) => handleInputChange('age', e.target.value)}
+                    className="border-brand-green/30 focus:border-brand-green"
+                  />
+                </div>
 
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-2">
-                      <Label htmlFor="currentAge" className="text-sm">อายุปัจจุบัน (ปี) *</Label>
-                      <Input
-                        id="currentAge"
-                        type="number"
-                        min="1"
-                        max="99"
-                        value={formData.currentAge}
-                        onChange={(e) => setFormData({...formData, currentAge: e.target.value})}
-                        placeholder="กรอกอายุปัจจุบัน"
-                        className="h-12"
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="coverageAge" className="text-sm">ความคุ้มครองจนถึงอายุ (ปี) *</Label>
-                      <Input
-                        id="coverageAge"
-                        type="number"
-                        min={formData.currentAge || "1"}
-                        max="99"
-                        value={formData.coverageAge}
-                        onChange={(e) => setFormData({...formData, coverageAge: e.target.value})}
-                        placeholder="กรอกอายุสิ้นสุดความคุ้มครอง"
-                        className="h-12"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="paymentFrequency" className="text-sm">ความถี่ในการจ่าย</Label>
-                    <Select value={formData.paymentFrequency} onValueChange={(value) => setFormData({...formData, paymentFrequency: value})}>
-                      <SelectTrigger className="h-12">
-                        <SelectValue placeholder="เลือกวิธีการจ่าย" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="annual">รายปี</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+                <div className="space-y-2">
+                  <Label htmlFor="gender" className="flex items-center gap-2 text-brand-green font-medium">
+                    <User className="w-4 h-4" />
+                    เพศ
+                  </Label>
+                  <Select value={formData.gender} onValueChange={(value) => handleInputChange('gender', value)}>
+                    <SelectTrigger className="border-brand-green/30 focus:border-brand-green">
+                      <SelectValue placeholder="เลือกเพศ" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-white border border-brand-green/20 shadow-lg z-50">
+                      <SelectItem value="male">ชาย</SelectItem>
+                      <SelectItem value="female">หญิง</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 
-              {/* Package Selection */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-brand-green border-b pb-2">
-                  เลือกแพ็กเกจประกันภัย *
-                </h3>
-                <SelectiveForm 
-                  onPackagesSelected={handlePackagesSelected}
-                  userAge={parseInt(formData.currentAge) || 25}
-                  userGender={formData.gender}
+              <div className="space-y-2">
+                <Label htmlFor="occupation" className="flex items-center gap-2 text-brand-green font-medium">
+                  <User className="w-4 h-4" />
+                  อาชีพ
+                </Label>
+                <Select value={formData.occupation} onValueChange={(value) => handleInputChange('occupation', value)}>
+                  <SelectTrigger className="border-brand-green/30 focus:border-brand-green">
+                    <SelectValue placeholder="เลือกอาชีพ" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white border border-brand-green/20 shadow-lg z-50">
+                    <SelectItem value="employee">พนักงานบริษัท</SelectItem>
+                    <SelectItem value="government">ข้าราชการ</SelectItem>
+                    <SelectItem value="business">ประกอบธุรกิจส่วนตัว</SelectItem>
+                    <SelectItem value="freelance">อาชีพอิสระ</SelectItem>
+                    <SelectItem value="student">นักเรียน/นักศึกษา</SelectItem>
+                    <SelectItem value="other">อื่น ๆ</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="income" className="flex items-center gap-2 text-brand-green font-medium">
+                  <DollarSign className="w-4 h-4" />
+                  รายได้ต่อเดือน (บาท)
+                </Label>
+                <Input
+                  id="income"
+                  type="number"
+                  placeholder="ระบุรายได้ต่อเดือน"
+                  value={formData.income}
+                  onChange={(e) => handleInputChange('income', e.target.value)}
+                  className="border-brand-green/30 focus:border-brand-green"
                 />
               </div>
 
-              {/* Action Buttons */}
-              <div className="space-y-3 pt-4 border-t">
+              <div className="space-y-2">
+                <Label htmlFor="paymentFrequency" className="flex items-center gap-2 text-brand-green font-medium">
+                  <Calendar className="w-4 h-4" />
+                  ความถี่ในการจ่าย
+                </Label>
+                <Select value={formData.paymentFrequency} onValueChange={(value) => handleInputChange('paymentFrequency', value)}>
+                  <SelectTrigger className="border-brand-green/30 focus:border-brand-green">
+                    <SelectValue placeholder="เลือกความถี่ในการจ่าย" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white border border-brand-green/20 shadow-lg z-50">
+                    <SelectItem value="annual">รายปี</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-4 pt-6">
                 <Button 
-                  onClick={calculatePremium}
-                  className="brand-green text-white hover:opacity-90 w-full h-12 text-lg"
-                  size="lg"
+                  onClick={calculateQuote}
+                  className="flex-1 bg-brand-green hover:bg-brand-green/90 text-white font-medium py-3 text-lg shadow-lg"
                 >
                   <Calculator className="w-5 h-5 mr-2" />
                   คำนวณเบี้ยประกัน
                 </Button>
                 
                 <Button 
-                  onClick={resetForm}
-                  variant="outline"
-                  className="border-brand-green text-brand-green hover:bg-brand-green hover:text-white w-full h-12"
-                  size="lg"
+                  onClick={handleSelectiveForm}
+                  className="flex-1 bg-brand-gold hover:bg-brand-gold/90 text-white font-medium py-3 text-lg shadow-lg"
                 >
-                  <RotateCcw className="w-5 h-5 mr-2" />
-                  รีเซ็ตฟอร์ม
+                  <Package className="w-5 h-5 mr-2" />
+                  เลือกแพ็กเกจ
                 </Button>
               </div>
+
+              {(showResults || quote) && (
+                <div className="pt-6">
+                  <Button 
+                    onClick={resetForm}
+                    variant="outline"
+                    className="w-full border-brand-gold text-brand-gold hover:bg-brand-gold hover:text-white"
+                  >
+                    รีเซ็ตข้อมูล
+                  </Button>
+                </div>
+              )}
             </CardContent>
           </Card>
 
-          {/* Results */}
-          {showResult && calculatedPremium && (
-            <QuoteResult 
-              formData={formData}
-              premium={calculatedPremium}
-              selectedPackages={selectedPackagesFromForm.map(pkg => ({
-                id: pkg.id,
-                name: pkg.name,
-                coverage: pkg.selectedPlans.reduce((total, plan) => total + parseInt(plan.coverage.replace('M', '000000')), 0),
-                premium: pkg.selectedPlans.reduce((total, plan) => total + (plan.monthlyPremium * plan.units), 0)
-              }))}
-              selectedPlans={[]}
-            />
+          {showResults && quote && (
+            <div className="mt-8">
+              <QuoteResult quote={quote} />
+            </div>
           )}
         </div>
       </div>
