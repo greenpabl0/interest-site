@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Search, ShoppingCart } from 'lucide-react';
+import { Search, ShoppingCart as CartIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import PackageSelector from './PackageSelector';
 import PlanSelector from './PlanSelector';

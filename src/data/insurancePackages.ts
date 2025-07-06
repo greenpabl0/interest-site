@@ -99,6 +99,7 @@ export const insurancePackages: InsurancePackage[] = [
         name: 'Lady Care',
         coverage: '800,000',
         monthlyPremium: {
+          male: {},
           female: { '18-30': 1200, '31-50': 1800, '51-65': 2800 }
         },
         description: 'ความคุ้มครองพิเศษสำหรับผู้หญิง 800,000 บาท'
@@ -108,6 +109,7 @@ export const insurancePackages: InsurancePackage[] = [
         name: 'Lady Care Plus',
         coverage: '1,500,000',
         monthlyPremium: {
+          male: {},
           female: { '18-30': 2000, '31-50': 2800, '51-65': 4200 }
         },
         description: 'ความคุ้มครองพิเศษสำหรับผู้หญิง 1,500,000 บาท'
