@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -277,7 +276,29 @@ const InsuranceCalculator = () => {
 
           {showResults && quote && (
             <div className="mt-8">
-              <QuoteResult quote={quote} />
+              <QuoteResult 
+                formData={{
+                  gender: quote.gender,
+                  currentAge: quote.age,
+                  coverageAge: "80", // Default coverage age
+                  paymentFrequency: quote.paymentFrequency,
+                  plans: [],
+                  packages: []
+                }}
+                premium={{
+                  monthly: quote.monthlyPremium,
+                  quarterly: Math.round(quote.monthlyPremium * 3 * 0.98), // Small discount
+                  semiAnnual: Math.round(quote.monthlyPremium * 6 * 0.96), // More discount
+                  annual: quote.annualPremium
+                }}
+                selectedPackages={[]}
+                selectedPlans={[{
+                  id: "basic",
+                  name: "แผนพื้นฐาน",
+                  description: "ความคุ้มครองพื้นฐานสำหรับการประกันชีวิต",
+                  basePremium: quote.annualPremium
+                }]}
+              />
             </div>
           )}
         </div>
