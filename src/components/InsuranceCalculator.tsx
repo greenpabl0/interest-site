@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Calculator, RotateCcw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import QuoteResult from './QuoteResult';
-import SelectiveForm from './SelectiveForm';
+import TwoStepInsuranceSelector from './TwoStepInsuranceSelector';
 
 interface CalculatorData {
   gender: string;
@@ -18,19 +19,15 @@ interface CalculatorData {
   packages: string[];
 }
 
-interface SelectedPackage {
-  id: string;
-  name: string;
-  category: string;
-  subPackages?: string[];
-  selectedPlans: {
-    planId: string;
-    planName: string;
-    coverage: string;
-    units: number;
-    monthlyPremium: number;
-    annualPremium: number;
-  }[];
+interface CartItem {
+  packageId: string;
+  packageName: string;
+  planId: string;
+  planName: string;
+  coverage: string;
+  units: number;
+  monthlyPremium: number;
+  totalMonthly: number;
 }
 
 const InsuranceCalculator = () => {
@@ -38,12 +35,12 @@ const InsuranceCalculator = () => {
     gender: '',
     currentAge: '',
     coverageAge: '',
-    paymentFrequency: 'annual', // Set default to annual
+    paymentFrequency: 'annual',
     plans: [],
     packages: []
   });
   
-  const [selectedPackagesFromForm, setSelectedPackagesFromForm] = useState<SelectedPackage[]>([]);
+  const [savedQuotes, setSavedQuotes] = useState<CartItem[]>([]);
   const [showResult, setShowResult] = useState(false);
   const [calculatedPremium, setCalculatedPremium] = useState<{
     monthly: number;
@@ -54,24 +51,20 @@ const InsuranceCalculator = () => {
 
   const { toast } = useToast();
 
-  const calculatePremium = () => {
-    if (!formData.gender || !formData.currentAge || !formData.coverageAge || selectedPackagesFromForm.length === 0) {
+  const handleQuoteSaved = (cartItems: CartItem[]) => {
+    if (!formData.gender || !formData.currentAge || !formData.coverageAge) {
       toast({
         title: "ข้อมูลไม่ครบถ้วน",
-        description: "กรุณากรอกข้อมูลและเลือกแพ็กเกจประกันอย่างน้อย 1 รายการ",
+        description: "กรุณากรอกข้อมูลส่วนตัวก่อนบันทึกใบเสนอราคา",
         variant: "destructive",
       });
       return;
     }
 
-    // Calculate premium based on selected packages from SelectiveForm
-    let totalMonthlyPremium = 0;
-    selectedPackagesFromForm.forEach(pkg => {
-      pkg.selectedPlans.forEach(plan => {
-        totalMonthlyPremium += plan.monthlyPremium * plan.units;
-      });
-    });
+    setSavedQuotes(cartItems);
     
+    // Calculate total premium
+    const totalMonthlyPremium = cartItems.reduce((sum, item) => sum + item.totalMonthly, 0);
     const annualPremium = totalMonthlyPremium * 12;
     
     setCalculatedPremium({
@@ -81,24 +74,14 @@ const InsuranceCalculator = () => {
       annual: annualPremium
     });
     
-    // Update formData with selected packages and plans
-    const packageNames = selectedPackagesFromForm.map(pkg => pkg.name);
-    const planNames = selectedPackagesFromForm.flatMap(pkg => 
-      pkg.selectedPlans.map(plan => plan.planName)
-    );
-    
+    // Update formData
     setFormData({
       ...formData,
-      packages: packageNames,
-      plans: planNames
+      packages: cartItems.map(item => item.packageName),
+      plans: cartItems.map(item => item.planName)
     });
     
     setShowResult(true);
-    
-    toast({
-      title: "คำนวณเบี้ยประกันสำเร็จ",
-      description: "ผลลัพธ์แสดงด้านล่าง",
-    });
   };
 
   const resetForm = () => {
@@ -106,11 +89,11 @@ const InsuranceCalculator = () => {
       gender: '',
       currentAge: '',
       coverageAge: '',
-      paymentFrequency: 'annual', // Reset to annual
+      paymentFrequency: 'annual',
       plans: [],
       packages: []
     });
-    setSelectedPackagesFromForm([]);
+    setSavedQuotes([]);
     setShowResult(false);
     setCalculatedPremium(null);
     
@@ -118,10 +101,6 @@ const InsuranceCalculator = () => {
       title: "รีเซ็ตฟอร์มเรียบร้อย",
       description: "สามารถกรอกข้อมูลใหม่ได้",
     });
-  };
-
-  const handlePackagesSelected = (packages: SelectedPackage[]) => {
-    setSelectedPackagesFromForm(packages);
   };
 
   return (
@@ -136,7 +115,7 @@ const InsuranceCalculator = () => {
           </p>
         </div>
 
-        <div className="max-w-2xl mx-auto space-y-6">
+        <div className="max-w-4xl mx-auto space-y-6">
           <Card className="shadow-lg border-0">
             <CardHeader className="brand-green text-white py-4">
               <CardTitle className="flex items-center gap-2 text-lg">
@@ -211,28 +190,21 @@ const InsuranceCalculator = () => {
               </div>
 
               {/* Package Selection */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-brand-green border-b pb-2">
-                  เลือกแพ็กเกจประกันภัย *
-                </h3>
-                <SelectiveForm 
-                  onPackagesSelected={handlePackagesSelected}
-                  userAge={parseInt(formData.currentAge) || 25}
-                  userGender={formData.gender}
-                />
-              </div>
+              {formData.gender && formData.currentAge && (
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-brand-green border-b pb-2">
+                    เลือกแพ็กเกจและแผนประกันภัย
+                  </h3>
+                  <TwoStepInsuranceSelector
+                    userAge={parseInt(formData.currentAge) || 25}
+                    userGender={formData.gender as 'male' | 'female'}
+                    onQuoteSaved={handleQuoteSaved}
+                  />
+                </div>
+              )}
 
-              {/* Action Buttons */}
-              <div className="space-y-3 pt-4 border-t">
-                <Button 
-                  onClick={calculatePremium}
-                  className="brand-green text-white hover:opacity-90 w-full h-12 text-lg"
-                  size="lg"
-                >
-                  <Calculator className="w-5 h-5 mr-2" />
-                  คำนวณเบี้ยประกัน
-                </Button>
-                
+              {/* Reset Button */}
+              <div className="pt-4 border-t">
                 <Button 
                   onClick={resetForm}
                   variant="outline"
@@ -247,15 +219,15 @@ const InsuranceCalculator = () => {
           </Card>
 
           {/* Results */}
-          {showResult && calculatedPremium && (
+          {showResult && calculatedPremium && savedQuotes.length > 0 && (
             <QuoteResult 
               formData={formData}
               premium={calculatedPremium}
-              selectedPackages={selectedPackagesFromForm.map(pkg => ({
-                id: pkg.id,
-                name: pkg.name,
-                coverage: pkg.selectedPlans.reduce((total, plan) => total + parseInt(plan.coverage.replace('M', '000000')), 0),
-                premium: pkg.selectedPlans.reduce((total, plan) => total + (plan.monthlyPremium * plan.units), 0)
+              selectedPackages={savedQuotes.map(item => ({
+                id: item.packageId,
+                name: item.packageName,
+                coverage: parseInt(item.coverage.replace(/,/g, '')),
+                premium: item.totalMonthly
               }))}
               selectedPlans={[]}
             />
