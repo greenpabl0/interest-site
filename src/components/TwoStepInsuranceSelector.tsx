@@ -2,8 +2,7 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Search, ShoppingCart as CartIcon } from 'lucide-react';
+import { Search, Save, ChevronRight, Check } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import PackageSelector from './PackageSelector';
 import PlanSelector from './PlanSelector';
@@ -39,10 +38,10 @@ const TwoStepInsuranceSelector: React.FC<TwoStepInsuranceSelectorProps> = ({
   userGender,
   onQuoteSaved
 }) => {
+  const [currentStep, setCurrentStep] = useState(1);
   const [selectedPackages, setSelectedPackages] = useState<string[]>([]);
   const [selectedPlans, setSelectedPlans] = useState<SelectedPlan[]>([]);
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
-  const [activeTab, setActiveTab] = useState('packages');
   const { toast } = useToast();
 
   const getAgeRange = (age: number): string => {
@@ -80,7 +79,6 @@ const TwoStepInsuranceSelector: React.FC<TwoStepInsuranceSelectorProps> = ({
         ? prev.filter(id => id !== packageId)
         : [...prev, packageId];
       
-      // Remove plans from deselected packages
       if (!newSelection.includes(packageId)) {
         setSelectedPlans(current => 
           current.filter(sp => sp.packageId !== packageId)
@@ -103,6 +101,18 @@ const TwoStepInsuranceSelector: React.FC<TwoStepInsuranceSelectorProps> = ({
       
       return filtered;
     });
+  };
+
+  const handleNextToPlans = () => {
+    if (selectedPackages.length === 0) {
+      toast({
+        title: "กรุณาเลือกแพ็กเกจ",
+        description: "เลือกอย่างน้อย 1 แพ็กเกจเพื่อดำเนินการต่อ",
+        variant: "destructive",
+      });
+      return;
+    }
+    setCurrentStep(2);
   };
 
   const handleSearch = () => {
@@ -132,7 +142,7 @@ const TwoStepInsuranceSelector: React.FC<TwoStepInsuranceSelectorProps> = ({
     });
 
     setCartItems(newCartItems);
-    setActiveTab('cart');
+    setCurrentStep(3);
     
     toast({
       title: "ค้นหาเบี้ยประกันสำเร็จ",
@@ -177,6 +187,7 @@ const TwoStepInsuranceSelector: React.FC<TwoStepInsuranceSelectorProps> = ({
     }
 
     onQuoteSaved(cartItems);
+    setCurrentStep(4);
     
     toast({
       title: "บันทึกใบเสนอราคาสำเร็จ",
@@ -184,48 +195,70 @@ const TwoStepInsuranceSelector: React.FC<TwoStepInsuranceSelectorProps> = ({
     });
   };
 
+  const steps = [
+    { number: 1, title: "เลือกแพ็กเกจ", completed: currentStep > 1 },
+    { number: 2, title: "เลือกแผนความคุ้มครอง", completed: currentStep > 2 },
+    { number: 3, title: "ค้นหาเบี้ยประกัน", completed: currentStep > 3 },
+    { number: 4, title: "บันทึกใบเสนอราคา", completed: currentStep > 4 }
+  ];
+
   return (
     <Card className="w-full">
       <CardHeader>
         <CardTitle className="text-lg text-brand-green">
           เลือกแพ็กเกจและแผนประกันภัย
         </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="packages">1. เลือกแพ็กเกจ</TabsTrigger>
-            <TabsTrigger value="plans">2. เลือกแผน</TabsTrigger>
-            <TabsTrigger value="cart" className="relative">
-              ตะกร้า
-              {cartItems.length > 0 && (
-                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                  {cartItems.length}
-                </span>
+        
+        {/* Step indicator */}
+        <div className="flex items-center justify-between mt-4">
+          {steps.map((step, index) => (
+            <div key={step.number} className="flex items-center">
+              <div className={`flex items-center justify-center w-8 h-8 rounded-full border-2 text-sm font-bold ${
+                step.completed 
+                  ? 'bg-green-500 border-green-500 text-white' 
+                  : currentStep === step.number
+                    ? 'bg-brand-green border-brand-green text-white'
+                    : 'bg-gray-100 border-gray-300 text-gray-500'
+              }`}>
+                {step.completed ? <Check className="w-4 h-4" /> : step.number}
+              </div>
+              <span className={`ml-2 text-xs font-medium ${
+                currentStep >= step.number ? 'text-brand-green' : 'text-gray-500'
+              }`}>
+                {step.title}
+              </span>
+              {index < steps.length - 1 && (
+                <ChevronRight className="w-4 h-4 mx-2 text-gray-400" />
               )}
-            </TabsTrigger>
-          </TabsList>
+            </div>
+          ))}
+        </div>
+      </CardHeader>
 
-          <TabsContent value="packages" className="mt-6">
+      <CardContent>
+        {currentStep === 1 && (
+          <div className="space-y-6">
             <PackageSelector
               selectedPackages={selectedPackages}
               onPackageSelect={handlePackageSelect}
               userAge={userAge}
               userGender={userGender}
             />
-            {selectedPackages.length > 0 && (
-              <div className="mt-6 text-center">
-                <Button
-                  onClick={() => setActiveTab('plans')}
-                  className="bg-brand-green text-white hover:bg-brand-green/90"
-                >
-                  ไปยังขั้นตอนเลือกแผน
-                </Button>
-              </div>
-            )}
-          </TabsContent>
+            <div className="text-center">
+              <Button
+                onClick={handleNextToPlans}
+                className="bg-brand-green text-white hover:bg-brand-green/90 h-12 px-8"
+                size="lg"
+              >
+                เลือกแผนความคุ้มครอง
+                <ChevronRight className="w-5 h-5 ml-2" />
+              </Button>
+            </div>
+          </div>
+        )}
 
-          <TabsContent value="plans" className="mt-6">
+        {currentStep === 2 && (
+          <div className="space-y-6">
             <PlanSelector
               selectedPackages={selectedPackages}
               selectedPlans={selectedPlans}
@@ -233,29 +266,73 @@ const TwoStepInsuranceSelector: React.FC<TwoStepInsuranceSelectorProps> = ({
               userAge={userAge}
               userGender={userGender}
             />
-            {selectedPlans.length > 0 && (
-              <div className="mt-6 text-center">
-                <Button
-                  onClick={handleSearch}
-                  className="bg-brand-green text-white hover:bg-brand-green/90 h-12 px-8"
-                  size="lg"
-                >
-                  <Search className="w-5 h-5 mr-2" />
-                  ค้นหาเบี้ยประกัน
-                </Button>
-              </div>
-            )}
-          </TabsContent>
+            <div className="flex gap-4 justify-center">
+              <Button
+                onClick={() => setCurrentStep(1)}
+                variant="outline"
+                className="border-brand-green text-brand-green hover:bg-brand-green hover:text-white h-12 px-6"
+              >
+                ย้อนกลับ
+              </Button>
+              <Button
+                onClick={handleSearch}
+                className="bg-brand-green text-white hover:bg-brand-green/90 h-12 px-8"
+                size="lg"
+              >
+                <Search className="w-5 h-5 mr-2" />
+                ค้นหาเบี้ยประกัน
+              </Button>
+            </div>
+          </div>
+        )}
 
-          <TabsContent value="cart" className="mt-6">
+        {currentStep === 3 && (
+          <div className="space-y-6">
             <ShoppingCart
               cartItems={cartItems}
               onRemoveItem={handleRemoveCartItem}
               onUpdateUnits={handleUpdateCartUnits}
               onSaveQuote={handleSaveQuote}
             />
-          </TabsContent>
-        </Tabs>
+            <div className="flex gap-4 justify-center">
+              <Button
+                onClick={() => setCurrentStep(2)}
+                variant="outline"
+                className="border-brand-green text-brand-green hover:bg-brand-green hover:text-white h-12 px-6"
+              >
+                ย้อนกลับ
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {currentStep === 4 && (
+          <div className="text-center py-8 space-y-4">
+            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto">
+              <Check className="w-8 h-8 text-green-600" />
+            </div>
+            <h3 className="text-xl font-semibold text-brand-green">
+              บันทึกใบเสนอราคาสำเร็จ!
+            </h3>
+            <p className="text-gray-600">
+              ข้อมูลของคุณได้รับการบันทึกเรียบร้อยแล้ว
+            </p>
+            <div className="space-y-2">
+              <Button
+                onClick={() => {
+                  setCurrentStep(1);
+                  setSelectedPackages([]);
+                  setSelectedPlans([]);
+                  setCartItems([]);
+                }}
+                variant="outline"
+                className="border-brand-green text-brand-green hover:bg-brand-green hover:text-white"
+              >
+                เริ่มต้นใหม่
+              </Button>
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
