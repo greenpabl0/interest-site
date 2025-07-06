@@ -4,9 +4,10 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { ChevronDown, Save, Package, RotateCcw, Minus, Plus, Eye } from 'lucide-react';
+import { ChevronDown, Save, Package, RotateCcw, Minus, Plus, Eye, Filter, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
+import { filterEligiblePackages, getEligibilityReason, isPackageEligible } from '@/utils/packageFilters';
 
 interface SubPlan {
   id: string;
@@ -101,13 +102,39 @@ const SelectiveForm: React.FC<SelectiveFormProps> = ({ onPackagesSelected, userA
   // Special packages that don't show coverage plans directly
   const specialPackages = ['multi pay-ci plus', 'Accident Coverage'];
 
-  // Get all packages for "Show All Plans" view
-  const getAllPackages = () => {
+  // Filter categories and packages based on user eligibility
+  const getFilteredCategories = () => {
+    const validGender = (userGender === 'male' || userGender === 'female') ? userGender : 'male';
+    const validAge = userAge && userAge > 0 ? userAge : 25;
+
+    const filteredCategories = { ...categories };
+    
+    Object.keys(filteredCategories).forEach(categoryKey => {
+      const category = filteredCategories[categoryKey];
+      category.packages = filterEligiblePackages(category.packages, validAge, validGender);
+    });
+
+    // Remove empty categories
+    Object.keys(filteredCategories).forEach(categoryKey => {
+      if (filteredCategories[categoryKey].packages.length === 0) {
+        delete filteredCategories[categoryKey];
+      }
+    });
+
+    return filteredCategories;
+  };
+
+  // Get filtered packages for "Show All Plans" view
+  const getFilteredAllPackages = () => {
+    const validGender = (userGender === 'male' || userGender === 'female') ? userGender : 'male';
+    const validAge = userAge && userAge > 0 ? userAge : 25;
+    
     const allPackages: string[] = [];
     Object.values(categories).forEach(category => {
       allPackages.push(...category.packages);
     });
-    return allPackages;
+    
+    return filterEligiblePackages(allPackages, validAge, validGender);
   };
 
   // Update getSubPlans to use the current age state
@@ -329,6 +356,9 @@ const SelectiveForm: React.FC<SelectiveFormProps> = ({ onPackagesSelected, userA
   const renderPackageContent = (packageName: string, categoryId: string) => {
     const selectedPkg = getSelectedPackage(packageName, categoryId);
     const isSelected = isPackageSelected(packageName, categoryId);
+    const validGender = (userGender === 'male' || userGender === 'female') ? userGender : 'male';
+    const validAge = userAge && userAge > 0 ? userAge : 25;
+    const eligibilityReason = getEligibilityReason(packageName, validAge, validGender);
 
     // Special handling for Accident Coverage - show plans directly
     if (packageName === 'Accident Coverage') {
@@ -336,9 +366,17 @@ const SelectiveForm: React.FC<SelectiveFormProps> = ({ onPackagesSelected, userA
         <div className="space-y-3">
           <div className="bg-white p-4 rounded-lg border shadow-sm">
             <div className="space-y-3">
-              <Label className="text-sm font-medium text-brand-green">
-                เลือกแผนความคุ้มครอง:
-              </Label>
+              <div className="flex items-center justify-between">
+                <Label className="text-sm font-medium text-brand-green">
+                  เลือกแผนความคุ้มครอง:
+                </Label>
+                {eligibilityReason && (
+                  <div className="text-xs text-brand-gold bg-brand-gold/10 px-2 py-1 rounded flex items-center gap-1">
+                    <AlertCircle className="w-3 h-3" />
+                    {eligibilityReason}
+                  </div>
+                )}
+              </div>
               
               {getSubPlans(packageName).map((plan) => {
                 const packageId = `${categoryId}-${packageName}`;
@@ -436,6 +474,12 @@ const SelectiveForm: React.FC<SelectiveFormProps> = ({ onPackagesSelected, userA
                 <Label className="font-medium text-gray-800 cursor-pointer">
                   {packageName}
                 </Label>
+                {eligibilityReason && (
+                  <div className="text-xs text-brand-gold bg-brand-gold/10 px-2 py-1 rounded mt-1 flex items-center gap-1">
+                    <AlertCircle className="w-3 h-3" />
+                    {eligibilityReason}
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -570,6 +614,9 @@ const SelectiveForm: React.FC<SelectiveFormProps> = ({ onPackagesSelected, userA
     );
   };
 
+  const filteredCategories = getFilteredCategories();
+  const filteredAllPackages = getFilteredAllPackages();
+
   return (
     <div className="space-y-6">
       <div className="text-center mb-6 bg-gradient-to-r from-brand-green/5 to-brand-gold/5 p-6 rounded-lg">
@@ -579,6 +626,12 @@ const SelectiveForm: React.FC<SelectiveFormProps> = ({ onPackagesSelected, userA
         <p className="text-brand-gold font-medium">
           กรุณาเลือกแพ็กเกจด้านล่างอย่างน้อย 1 แพ็กเกจ
         </p>
+        {userAge && userGender && (
+          <div className="mt-3 flex items-center justify-center gap-2 text-sm text-brand-green">
+            <Filter className="w-4 h-4" />
+            <span>กรองสำหรับ: {userGender === 'male' ? 'ชาย' : 'หญิง'} อายุ {userAge} ปี</span>
+          </div>
+        )}
       </div>
 
       <Card className="shadow-lg border border-brand-green/20">
@@ -611,8 +664,25 @@ const SelectiveForm: React.FC<SelectiveFormProps> = ({ onPackagesSelected, userA
             </Button>
           </div>
 
+          {/* No eligible packages message */}
+          {Object.keys(filteredCategories).length === 0 && !showAllPlans && (
+            <div className="text-center py-8">
+              <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+              <p className="text-gray-600">ไม่มีแพ็กเกจที่เหมาะสมสำหรับข้อมูลที่กรอก</p>
+              <p className="text-sm text-gray-500 mt-1">กรุณาตรวจสอบอายุและเพศที่กรอก</p>
+            </div>
+          )}
+
+          {filteredAllPackages.length === 0 && showAllPlans && (
+            <div className="text-center py-8">
+              <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+              <p className="text-gray-600">ไม่มีแพ็กเกจที่เหมาะสมสำหรับข้อมูลที่กรอก</p>
+              <p className="text-sm text-gray-500 mt-1">กรุณาตรวจสอบอายุและเพศที่กรอก</p>
+            </div>
+          )}
+
           {/* Category View */}
-          {!showAllPlans && Object.values(categories).map((category) => (
+          {!showAllPlans && Object.values(filteredCategories).map((category) => (
             <Collapsible 
               key={category.id}
               open={expandedCategories.includes(category.id)}
@@ -634,6 +704,7 @@ const SelectiveForm: React.FC<SelectiveFormProps> = ({ onPackagesSelected, userA
                       )}
                     </div>
                     <span className="font-medium text-brand-green">{category.name}</span>
+                    <span className="text-xs text-gray-500">({category.packages.length} แพ็กเกจ)</span>
                   </div>
                   <ChevronDown className={`w-5 h-5 transition-transform ${
                     expandedCategories.includes(category.id) ? 'rotate-180' : ''
@@ -652,10 +723,12 @@ const SelectiveForm: React.FC<SelectiveFormProps> = ({ onPackagesSelected, userA
           ))}
 
           {/* All Plans View */}
-          {showAllPlans && (
+          {showAllPlans && filteredAllPackages.length > 0 && (
             <div className="space-y-3">
-              <h4 className="font-semibold text-brand-green mb-3">แผนประกันทั้งหมด:</h4>
-              {getAllPackages().map((packageName) => {
+              <h4 className="font-semibold text-brand-green mb-3">
+                แผนประกันที่เหมาะสม ({filteredAllPackages.length} แพ็กเกจ):
+              </h4>
+              {filteredAllPackages.map((packageName) => {
                 const category = Object.values(categories).find(cat => cat.packages.includes(packageName));
                 return (
                   <div key={packageName}>
