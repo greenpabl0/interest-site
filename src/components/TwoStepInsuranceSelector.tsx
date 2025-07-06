@@ -2,7 +2,8 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Search, Save, ChevronRight, Check } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Search, Save, ChevronRight, Check, ShoppingCart as CartIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import PackageSelector from './PackageSelector';
 import PlanSelector from './PlanSelector';
@@ -236,8 +237,15 @@ const TwoStepInsuranceSelector: React.FC<TwoStepInsuranceSelectorProps> = ({
       </CardHeader>
 
       <CardContent>
-        {currentStep === 1 && (
-          <div className="space-y-6">
+        <Tabs value={currentStep.toString()} className="w-full">
+          <TabsList className="hidden">
+            <TabsTrigger value="1">Step 1</TabsTrigger>
+            <TabsTrigger value="2">Step 2</TabsTrigger>
+            <TabsTrigger value="3">Step 3</TabsTrigger>
+            <TabsTrigger value="4">Step 4</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="1" className="space-y-6">
             <PackageSelector
               selectedPackages={selectedPackages}
               onPackageSelect={handlePackageSelect}
@@ -254,11 +262,9 @@ const TwoStepInsuranceSelector: React.FC<TwoStepInsuranceSelectorProps> = ({
                 <ChevronRight className="w-5 h-5 ml-2" />
               </Button>
             </div>
-          </div>
-        )}
+          </TabsContent>
 
-        {currentStep === 2 && (
-          <div className="space-y-6">
+          <TabsContent value="2" className="space-y-6">
             <PlanSelector
               selectedPackages={selectedPackages}
               selectedPlans={selectedPlans}
@@ -283,11 +289,9 @@ const TwoStepInsuranceSelector: React.FC<TwoStepInsuranceSelectorProps> = ({
                 ค้นหาเบี้ยประกัน
               </Button>
             </div>
-          </div>
-        )}
+          </TabsContent>
 
-        {currentStep === 3 && (
-          <div className="space-y-6">
+          <TabsContent value="3" className="space-y-6">
             <ShoppingCart
               cartItems={cartItems}
               onRemoveItem={handleRemoveCartItem}
@@ -303,11 +307,9 @@ const TwoStepInsuranceSelector: React.FC<TwoStepInsuranceSelectorProps> = ({
                 ย้อนกลับ
               </Button>
             </div>
-          </div>
-        )}
+          </TabsContent>
 
-        {currentStep === 4 && (
-          <div className="text-center py-8 space-y-4">
+          <TabsContent value="4" className="text-center py-8 space-y-4">
             <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto">
               <Check className="w-8 h-8 text-green-600" />
             </div>
@@ -331,8 +333,8 @@ const TwoStepInsuranceSelector: React.FC<TwoStepInsuranceSelectorProps> = ({
                 เริ่มต้นใหม่
               </Button>
             </div>
-          </div>
-        )}
+          </TabsContent>
+        </Tabs>
       </CardContent>
     </Card>
   );
