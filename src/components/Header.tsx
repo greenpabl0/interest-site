@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Calculator, Settings, LogIn, LogOut, User } from 'lucide-react';
@@ -72,15 +71,26 @@ const Header = () => {
                   </Button>
                 </div>
               ) : (
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="border-brand-green text-brand-green hover:bg-brand-green hover:text-white"
-                  onClick={() => setShowLoginModal(true)}
-                >
-                  <LogIn className="w-4 h-4 mr-2" />
-                  เข้าสู่ระบบ
-                </Button>
+                <>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="border-brand-green text-brand-green hover:bg-brand-green hover:text-white"
+                    onClick={() => setShowLoginModal(true)}
+                  >
+                    <LogIn className="w-4 h-4 mr-2" />
+                    เข้าสู่ระบบ
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="border-brand-green text-brand-green hover:bg-brand-green hover:text-gold"
+                    onClick={() => setShowLoginModal(true)}
+                  >
+                    <LogIn className="w-4 h-4 mr-2" />
+                    Sign In
+                  </Button>
+                </>
               )}
             </nav>
           </div>
