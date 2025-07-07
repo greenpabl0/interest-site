@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -16,21 +17,6 @@ interface CalculatorData {
   paymentFrequency: string;
   plans: string[];
   packages: string[];
-}
-
-interface SelectedPackage {
-  id: string;
-  name: string;
-  category: string;
-  subPackages?: string[];
-  selectedPlans: {
-    planId: string;
-    planName: string;
-    coverage: string;
-    units: number;
-    monthlyPremium: number;
-    annualPremium: number;
-  }[];
 }
 
 interface StepData {
@@ -118,7 +104,7 @@ const InsuranceCalculator = () => {
     );
   };
 
-  // Step 1: Package Selection
+  // Step handlers
   const handlePackageSelection = () => {
     if (!formData.gender || !formData.currentAge) {
       toast({
@@ -140,7 +126,6 @@ const InsuranceCalculator = () => {
     });
   };
 
-  // Step 2: Plan Selection
   const selectPlan = (planName: string) => {
     setStepData({ ...stepData, selectedPlan: planName });
     setCurrentStep(3);
@@ -150,7 +135,6 @@ const InsuranceCalculator = () => {
     });
   };
 
-  // Step 3: Search/Calculate
   const handleSearch = () => {
     if (!stepData.selectedPackage || !stepData.selectedPlan) {
       toast({
@@ -161,7 +145,6 @@ const InsuranceCalculator = () => {
       return;
     }
 
-    // Mock calculation
     const mockPremium = {
       monthly: Math.floor(Math.random() * 5000) + 1000,
       quarterly: 0,
@@ -182,7 +165,6 @@ const InsuranceCalculator = () => {
     });
   };
 
-  // Step 4: Save
   const handleSave = () => {
     setFormData({
       ...formData,
@@ -204,9 +186,16 @@ const InsuranceCalculator = () => {
       gender: '',
       currentAge: '',
       coverageAge: '',
-      paymentFrequency: 'annual', // Reset to annual
+      paymentFrequency: 'annual',
       plans: [],
       packages: []
+    });
+    setCurrentStep(0);
+    setStepData({
+      selectedPackage: '',
+      selectedPlan: '',
+      searchResults: null,
+      savedData: null
     });
     setShowResult(false);
     setCalculatedPremium(null);
@@ -221,6 +210,36 @@ const InsuranceCalculator = () => {
     if (currentStep > 0) {
       setCurrentStep(currentStep - 1);
     }
+  };
+
+  const calculatePremium = () => {
+    if (!formData.gender || !formData.currentAge || !formData.coverageAge || 
+        formData.packages.length === 0 || formData.plans.length === 0) {
+      toast({
+        title: "ข้อมูลไม่ครบ",
+        description: "กรุณากรอกข้อมูลให้ครบถ้วน",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const mockPremium = {
+      monthly: Math.floor(Math.random() * 5000) + 1000,
+      quarterly: 0,
+      semiAnnual: 0,
+      annual: 0
+    };
+    mockPremium.quarterly = Math.round(mockPremium.monthly * 3 * 1.02);
+    mockPremium.semiAnnual = Math.round(mockPremium.monthly * 6 * 1.01);
+    mockPremium.annual = mockPremium.monthly * 12;
+
+    setCalculatedPremium(mockPremium);
+    setShowResult(true);
+    
+    toast({
+      title: "คำนวณสำเร็จ",
+      description: "พบเบี้ยประกันที่เหมาะสมแล้ว",
+    });
   };
 
   const renderStepContent = () => {
@@ -375,7 +394,7 @@ const InsuranceCalculator = () => {
                 <div className="grid grid-cols-1 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="gender" className="text-sm">เพศ *</Label>
-                    <Select value={formData.gender} onValueChange={(value) => setFormData({...formData, gender: value})}>
+                    <Select value={formData.gender} onValueChange={value => setFormData({...formData, gender: value})}>
                       <SelectTrigger className="h-12">
                         <SelectValue placeholder="เลือกเพศ" />
                       </SelectTrigger>
@@ -395,7 +414,7 @@ const InsuranceCalculator = () => {
                         min="1"
                         max="99"
                         value={formData.currentAge}
-                        onChange={(e) => setFormData({...formData, currentAge: e.target.value})}
+                        onChange={e => setFormData({...formData, currentAge: e.target.value})}
                         placeholder="กรอกอายุปัจจุบัน"
                         className="h-12"
                       />
@@ -409,7 +428,7 @@ const InsuranceCalculator = () => {
                         min={formData.currentAge || "1"}
                         max="99"
                         value={formData.coverageAge}
-                        onChange={(e) => setFormData({...formData, coverageAge: e.target.value})}
+                        onChange={e => setFormData({...formData, coverageAge: e.target.value})}
                         placeholder="กรอกอายุสิ้นสุดความคุ้มครอง"
                         className="h-12"
                       />
@@ -418,12 +437,15 @@ const InsuranceCalculator = () => {
 
                   <div className="space-y-2">
                     <Label htmlFor="paymentFrequency" className="text-sm">ความถี่ในการจ่าย</Label>
-                    <Select value={formData.paymentFrequency} onValueChange={(value) => setFormData({...formData, paymentFrequency: value})}>
+                    <Select value={formData.paymentFrequency} onValueChange={value => setFormData({...formData, paymentFrequency: value})}>
                       <SelectTrigger className="h-12">
                         <SelectValue placeholder="เลือกวิธีการจ่าย" />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="annual">รายปี</SelectItem>
+                        <SelectItem value="monthly">รายเดือน</SelectItem>
+                        <SelectItem value="quarterly">รายไตรมาส</SelectItem>
+                        <SelectItem value="semiannual">ราย 6 เดือน</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -443,7 +465,7 @@ const InsuranceCalculator = () => {
                       <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ${
                         currentStep >= step ? 'bg-brand-green text-white' : 'bg-gray-200 text-gray-600'
                       }`}>
-                        {step}
+                        {currentStep > step ? <CheckCircle className="w-5 h-5" /> : step}
                       </div>
                       {step < 4 && (
                         <div className={`w-12 h-1 ${
@@ -503,6 +525,15 @@ const InsuranceCalculator = () => {
               {/* Action Buttons */}
               <div className="space-y-3 pt-4 border-t">
                 <Button 
+                  onClick={calculatePremium}
+                  className="brand-green text-white w-full h-12"
+                  size="lg"
+                >
+                  <Calculator className="w-5 h-5 mr-2" />
+                  คำนวณเบี้ยประกัน
+                </Button>
+                
+                <Button 
                   onClick={resetForm}
                   variant="outline"
                   className="border-brand-green text-brand-green hover:bg-brand-green hover:text-white w-full h-12"
@@ -522,7 +553,7 @@ const InsuranceCalculator = () => {
               premium={calculatedPremium}
               selectedPackages={[{
                 id: '1',
-                name: stepData.selectedPackage,
+                name: stepData.selectedPackage || 'แพ็กเกจที่เลือก',
                 coverage: 1000000,
                 premium: calculatedPremium.monthly
               }]}
